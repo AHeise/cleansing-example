@@ -26,5 +26,9 @@
 	<classpathentry kind="con" path="org.eclipse.jdt.junit.JUNIT_CONTAINER/4"/>
 	<classpathentry kind="src" path="/sopremo-common"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/sopremo-client"/>
+	<classpathentry kind="src" path="/meteor-meteor"/>
+	<classpathentry kind="src" path="/sopremo-query"/>
+	<classpathentry kind="src" path="/sopremo-testserver"/>
+	<classpathentry kind="lib" path="/sopremo-cleansing/target/sopremo-cleansing-0.1.jar"/>
 	<classpathentry kind="output" path="target/classes"/>
 </classpath>
