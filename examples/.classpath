@@ -29,6 +29,6 @@
 			<attribute name="maven.pomderived" value="true"/>
 		</attributes>
 	</classpathentry>
-	<classpathentry kind="lib" path="/home/fabian/workspace/git/cleansing/target/sopremo-cleansing-0.1.jar"/>
+	<classpathentry kind="lib" path="/home/tommy-neubert/Arbeitsfläche/Hiwi/Repositories/gh_cleansing/target/sopremo-cleansing-0.1.jar"/>
 	<classpathentry kind="output" path="target/classes"/>
 </classpath>

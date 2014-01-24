@@ -8,7 +8,7 @@ $politicians_in = read from '../resources/govwild/input/OriginalFreebasePolitici
 $politicians_scrubbed = scrub $politicians_in with rules {
 	_id: [required, concat_strings("_P")],
 	id: required,
-	name: [required, normalize_name("../resources/govwild/scrub/officialTitles.Prefix.dict")],
+	name: [required, normalize_name("/home/tommy-neubert/Arbeitsfläche/Hiwi/Repositories/cleansing-example/examples/src/main/resources/govwild/scrub/officialTitles.Prefix.dict")],
 	party: required?: default(""),
 	
 	governmentPositionsHeld: required?: default([]),
@@ -24,12 +24,10 @@ $politicians = map entities of $politicians_scrubbed into [
 		_id: $politicians_scrubbed._id,
 		party: $politicians_scrubbed.party,
 		
-		//firstName: $politicians_scrubbed.name[0],
-		//middleName: $politicians_scrubbed.name[1],
-		//lastName: $politicians_scrubbed.name[2],
-		//nameAddition: $politicians_scrubbed.name[3],
-		
-		fullName: $politicians_scrubbed.name,
+		firstName: $politicians_scrubbed.name[0],
+		middleName: $politicians_scrubbed.name[1],
+		lastName: $politicians_scrubbed.name[2],
+		nameAddition: $politicians_scrubbed.name[3],
 		
 		original: $politicians_scrubbed.id
 	}
