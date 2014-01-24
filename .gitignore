@@ -4,4 +4,4 @@
 *.jar
 *.war
 *.ear
-examples/target/classes/govwild/
+examples/target/*
