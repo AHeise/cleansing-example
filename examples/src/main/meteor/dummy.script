@@ -1,5 +1,0 @@
-using cleansing;
-
-$UsCongress = read from '../resources/govwild/input/OriginalUsCongress.json';
-
-write $UsCongress to '../resources/govwild/output/UsPersons.json';

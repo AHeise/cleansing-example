@@ -1,0 +1,23 @@
+using cleansing;
+
+$usCongress = read from '../resources/govwild/input/OriginalUsCongress.json';
+
+$usCongress_scrubbed = scrub $usCongress with rules {
+	_id: [required, concat_strings("_P")],
+	memberName: required,
+	biography: required,
+	party: required
+};
+
+$usCongressPersons, $usCongressParties  = map entities of $usCongress_scrubbed
+into [
+    entity $usCongressPersons identified by $usCongress_scrubbed._id with {
+
+    },
+    entity $usCongressParties identified by $usCongress_scrubbed.party with {
+      
+    }
+];
+
+write $usCongressPersons to '../resources/govwild/output/UsCongressPersons.json';
+write $usCongressParties to '../resources/govwild/output/UsCongressParties.json';
