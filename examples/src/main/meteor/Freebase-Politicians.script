@@ -63,6 +63,7 @@ $politicians, $parties = map entities of $politicians_scrubbed, $parties_unrolle
 		$parties_unrolled._id,
 		$parties_unrolled.name,
 		$parties_unrolled.ideology,
+		$parties_unrolled.country,
 		
 		original: $parties_unrolled.id
 	}
