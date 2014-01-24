@@ -1,0 +1,281 @@
+$filename = "UsCongress";
+$UsCongress = read(hdfs($input_hdfs + $filename + ".json"));
+
+//### TIME START: US-CONGRESS
+now();
+
+$person = $UsCongress -> transform {
+	_id: $._id + "_P",
+	originals: [$._id],
+	firstName: UsCongressGetFirstName($.memberName),
+	middleName: UsCongressGetMiddleName($.memberName),
+	lastName: UsCongressGetLastName($.memberName),
+	nameAddition: UsCongressGetNameAddition($.memberName),
+	biography: $.biography,
+	birth: removeNullFields({
+		year: DecimalFloatToInt(number(RemoveStringsWithLessChars((strSplit(NullOnEmptyString(strSplit(UsEarmarksRemoveSigns($.birthDeath,". caukown"),"-")[0]),"/")[0]),4)))
+		}),
+	death: removeNullFields({
+		year: DecimalFloatToInt(number(RemoveStringsWithLessChars((NullOnEmptyString(strSplit(UsEarmarksRemoveSigns($.birthDeath,". caukown"),"-")[1])),4)))
+		}),
+	worksFor: clearArray([{
+		congressNumber: DecimalFloatToInt(number(strSplit($.congress, "\\(")[0])),
+		legalEntity: $.party
+		},{
+		congressNumber: DecimalFloatToInt(number(strSplit($.congress, "\\(")[0])),
+		startYear: DecimalFloatToInt(number(strSplit(strSplit($.congress, "\\(")[1], "-")[0])),
+		endYear: DecimalFloatToInt(number(strSplit(strSplit(strSplit($.congress, "\\(")[1], "-")[1], "\\)")[0])),
+		position: $.position,
+		legalEntity: DictionaryReplacement($.state,"statesEntities")
+		}
+	])
+};
+
+
+//parties LE
+$party = $UsCongress -> transform {
+	_id: $._id + "_L1",
+	originals: $._id,
+	name: $.party
+}
+-> filter $.name != "Unknown"
+-> group by $name = $.name
+into {
+	_id: DictionaryReplacement(UsEarmarksRemoveSigns($name,";\"\'"),"parties"),//_id: min($[*]._id),	
+	originals: [($[*].originals)[0]], // excluded more originals for convenience 
+	name: $name,
+	type: {
+		category: "party"
+	}
+};
+
+
+// Person update references of parties - group persons by bio
+$person2 = clearArray(
+join preserve $person, $party
+where $party.name == $person.worksFor[0].legalEntity
+into {	
+	$person._id,
+	$person.originals,
+	$person.firstName,
+	$person.middleName,
+	$person.lastName,
+	$person.nameAddition,
+	$person.biography,
+	$person.birth,
+	$person.death,
+	worksForParty: (remap($person, 
+		{	worksFor: [ {	
+				legalEntity: $party._id,
+				$person.worksFor[0].congressNumber
+		}, $person.worksFor[1]
+		]})).worksFor
+})
+-> group by $bio = $.biography
+into {
+	_id: min($[*]._id),
+	originals: ($[*].originals)[],
+	firstName: ($[0].firstName),	
+	middleName: ($[0].middleName),
+	lastName: ($[0].lastName),
+	nameAddition : UsEarmarksTrim(UsEarmarksRemoveString(UsEarmarksRemoveSigns(serialize(denull(distinct($[*].nameAddition))),"[]\","),"\n")),
+	biography: $bio,
+	worksForParty: distinct(mergeContainers(($[*].worksForParty)[])),
+	birth : ($[0].birth),
+	death : ($[0].death)
+};
+
+//-----------------------------------------
+//including information from the biographies
+//-----------------------------------------
+$filename = "UsCongressBiography.json";
+
+$UsCongressBiography = read(hdfs($input_hdfs + $filename))
+-> transform {
+		"id": $.id,
+		"text": $.biography,
+		"label": $._id
+		}
+-> transform systemt("UsCongress.aog", "localPath", {in: ["text", "label"], out: ["bornIn","family", "worksFor", "bornPlace", "bornMonthDay", "bornYear", "deathPlace", "deathYear", "deathMonthDay", "bibliography"]},$);
+
+
+$person_with_bio = clearArray(
+		join $person2, $UsCongressBiography
+		where $UsCongressBiography.id == $person2.biography
+		into {
+			$person2.*,
+			$UsCongressBiography.*
+		});
+
+
+// resolving the spans
+a = $person_with_bio
+-> transform {
+	"_id": $._id,
+	//"bio_id": $.label,
+	"originals": mergeContainers([$.label], $.originals),
+	//"biFullLine": span($.bornIn,$.text,"_span")[0].bornIn,
+	"placeOfBirth": span($.bornPlace,$.text,"_span")[0].place,
+	"birth": if (($.birth) == ({"year": DecimalFloatToInt(number(span($.bornYear,$.text,"_span")[0].year))}))
+			removeNullFields({
+				"year": DecimalFloatToInt(number(span($.bornYear,$.text,"_span")[0].year)),
+				"day": DecimalFloatToInt(number(span($.bornMonthDay,$.text,"_span")[0].day)),
+				"month": DecimalFloatToInt(number(DictionaryReplacement(span($.bornMonthDay,$.text,"_span")[0].month,"months")))
+			})
+			else
+			$.birth,
+//	"birth_new": {
+//		"year": span($.bornYear,$.text,"_span")[0].year,
+//		"day": span($.bornMonthDay,$.text,"_span")[0].day,
+//		"month": span($.bornMonthDay,$.text,"_span")[0].month
+//	},
+	"relatedPersons": 
+		for(P in $.family)
+		[{
+			"person": CounterStringNonStatic($.label + "_P"),
+			"type": span([P],$.text,"_span")[0].role
+		}],
+	"worksFor": clearArray(mergeContainers((for (LE in $.worksFor)			
+	[{
+		"legalEntity": 	if (substring($.label,0,10) == "usStates_") $.label
+							else CounterStringNonStatic($.label + "_L"),
+		"position": span([LE],$.text,"_span")[0].role,
+		"startYear": DecimalFloatToInt(number(span([LE],$.text,"_span")[0].start)),
+		"endYear": DecimalFloatToInt(number(span([LE],$.text,"_span")[0].end))
+	}]), $.worksForParty)),	
+	"death": if (($.death) == ({"year": DecimalFloatToInt(number(span($.deathYear,$.text,"_span")[0].year))}))
+			removeNullFields({
+				"year": DecimalFloatToInt(number(span($.deathYear,$.text,"_span")[0].year)),
+				"day": DecimalFloatToInt(number(span($.deathMonthDay,$.text,"_spancount")[0].day)),
+				"month": DecimalFloatToInt(number(DictionaryReplacement(span($.deathMonthDay,$.text,"_span")[0].month,"months")))
+			})
+			else
+			$.death,
+	"placeOfDeath": span($.deathPlace,$.text,"_span")[0].place,
+	"bibliography": span($.bibliography,$.text,"_span")[0].bib,
+	"biography": $.text,
+
+	$.firstName,
+	$.lastName,
+	$.middleName
+	
+};
+
+$person_bio_unrolled =
+a 
+-> expand unroll $.originals
+-> transform {
+	$._id,
+	$.originals
+};
+// related Person
+relatedPerson = for($person in $person_with_bio)(
+	for($P in $person.family)			
+		[{
+			"_id": CounterStringNonStatic($person.label + "_P"),
+			"originals": [$person.label],
+			"name": span([$P],$person.text,"_span")[0].name,
+			"birth": removeNullFields({
+				"year": DecimalFloatToInt(number(span([$P],$person.text,"_span")[0].birth))
+			}),
+			"death": removeNullFields({
+				"year": DecimalFloatToInt(number(span([$P],$person.text,"_span")[0].death))
+			}),
+			"relatedPersons": [{
+				"type": span([$P],$person.text,"_span")[0].role + "!",
+				"person": $person.label
+			}]
+		}])
+-> filter not isnull($.name);
+
+$family_pre = for ($person in relatedPerson)
+	[
+	 	remap(remap(remap(remap($person, { "firstName":AllFreebaseNormalizeName($person.name)[0]}), { "middleName":AllFreebaseNormalizeName($person.name)[1]}), { "lastName":AllFreebaseNormalizeName($person.name)[2]}), { "nameAddition":AllFreebaseNormalizeName($person.name)[3]})
+	];
+
+$family = for ($person in $family_pre)
+	[
+	 	removeFields($person, ["name"])
+	];
+	
+	
+	
+$family_final =
+join preserve $family, $person_bio_unrolled
+where $family.relatedPersons[0].person == $person_bio_unrolled.originals
+into {
+	$family{* - .relatedPersons},
+	relatedPersons: [remap($family.relatedPersons[0], 
+						{ $family.relatedPersons[0].type, person: $person_bio_unrolled._id} )]
+};
+
+//$family_final_unrolled = 
+//$family_final -> transform { 
+//	$.originals, 
+//	$._id
+//	};
+//
+//$a_final =
+//	join preserve a, $family_final
+//	where $family.relatedPersons[0].person == $person_bio_unrolled.originals
+//	into {
+//		$family{* - .relatedPersons},
+//		relatedPersons: [remap($family.relatedPersons[0], 
+//							{ $family.relatedPersons[0].type, person: $person_bio_unrolled._id} )]
+//	};
+
+
+clearArray($family_final)
+-> write(hdfs($scrub_hdfs + "PersonUsCongressBiography.json"));
+
+
+l = for($person in $person_with_bio)(
+	for($LE in $person.worksFor)			
+		[{
+			"_id": 	if (substring($person.label,0,10) == "usStates_") $person.label
+						else CounterStringNonStatic($person.label + "_L"),
+			"originals": [$person.label],
+			"name": span([$LE],$person.text,"_span")[0].name,
+			"type": removeNullFields({ 
+				"form": scrubCompanyName(span([$LE],$person.text,"_span")[0].name, true)[1]
+			})
+//			"employees": [{
+//				"person": $person.label + "_P",
+//				"role": span([$LE],$person.text,"_span")[0].role,
+//				"startYear": span([$LE],$person.text,"_span")[0].start,
+//				"endYear": span([$LE],$person.text,"_span")[0].end,
+//				"string": span([$LE],$person.text,"_span")[0].string			
+//			}]
+		}])
+-> filter not isnull($.name);
+
+//->transform{
+//	"role": $.employees[0].role
+//}
+clearArray(mergeContainers(l,$party))
+-> write(hdfs($scrub_hdfs + "LegalEntityUsCongress.json"));
+
+clearArray(a)
+-> write(hdfs($scrub_hdfs + "PersonUsCongress.json"));
+
+// Testview
+//o = a -> transform {
+//	"worksFor" : $.worksFor,
+//}
+//-> filter $.worksFor != [];
+
+//### TIME FINISH: US-CONGRESS
+now();
+
+$parties = AllParties();
+
+$parties_final =
+	for ($party in $parties) [{
+		_id: $party[1],
+		name: $party[0],
+		type:	{
+			category: "party"
+		}
+	}];
+	
+$parties_final -> write(hdfs($scrub_hdfs+"LegalEntityPartyC.json"));
