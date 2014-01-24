@@ -27,10 +27,22 @@ import eu.stratosphere.sopremo.packages.BuiltinProvider;
 import eu.stratosphere.sopremo.type.ArrayNode;
 import eu.stratosphere.sopremo.type.IArrayNode;
 import eu.stratosphere.sopremo.type.IJsonNode;
+import eu.stratosphere.sopremo.type.IntNode;
 import eu.stratosphere.sopremo.type.NullNode;
 import eu.stratosphere.sopremo.type.TextNode;
 
 public class GovWildUDF implements BuiltinProvider {
+
+	@Name(noun = "array_get")
+	public static class ARRAY_GET extends
+			SopremoFunction2<IArrayNode<IJsonNode>, IntNode> {
+
+		@Override
+		protected IJsonNode call(IArrayNode<IJsonNode> array, IntNode index) {
+			return array.get(index.getIntValue());
+		}
+
+	}
 
 	@Name(noun = "normalize_name")
 	public static class NORMALIZE_NAME extends

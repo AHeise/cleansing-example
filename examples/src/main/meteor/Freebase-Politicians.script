@@ -1,5 +1,5 @@
 using cleansing;
-using govwild;
+using udf;
 
 $politicians_in = read from '../resources/govwild/input/OriginalFreebasePolitician.json';
 
@@ -19,15 +19,18 @@ write $politicians_scrubbed to '../resources/govwild/output/SCRUB_Politicians.js
 
 
 // ENTITY EXTRACTION
+// TODO:
+//  1. implement the array access alternative in entity mapping
+//  2. implement the possibility to the whole input object as value
 $politicians = map entities of $politicians_scrubbed into [
 	entity $politicians identified by $politicians_scrubbed.id with {
 		_id: $politicians_scrubbed._id,
 		party: $politicians_scrubbed.party,
 		
-		firstName: $politicians_scrubbed.name[0],
-		middleName: $politicians_scrubbed.name[1],
-		lastName: $politicians_scrubbed.name[2],
-		nameAddition: $politicians_scrubbed.name[3],
+		firstName: array_get($politicians_scrubbed.name, 0),
+		middleName: array_get($politicians_scrubbed.name, 1),
+		lastName: array_get($politicians_scrubbed.name, 2),
+		nameAddition: array_get($politicians_scrubbed.name, 3),
 		
 		original: $politicians_scrubbed.id
 	}
