@@ -12,7 +12,7 @@
  * specific language governing permissions and limitations under the License.
  *
  **********************************************************************************************************************/
-package eu.stratosphere.sopremo.cleansing.examples.udf;
+package eu.stratosphere.sopremo.cleansing.examples;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -20,8 +20,11 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 
 import eu.stratosphere.sopremo.function.SopremoFunction2;
+import eu.stratosphere.sopremo.function.SopremoFunction3;
 import eu.stratosphere.sopremo.operator.Name;
 import eu.stratosphere.sopremo.packages.BuiltinProvider;
 import eu.stratosphere.sopremo.type.ArrayNode;
@@ -200,5 +203,101 @@ public class GovWildUDF implements BuiltinProvider {
 			return input;
 		}
 	}
+	
+	public static DICTIONARY_REPLACEMENT DICTIONARY_REPLACEMENT = new DICTIONARY_REPLACEMENT();
+
+	@Name(noun = "dict_replace")
+	public static class DICTIONARY_REPLACEMENT extends
+			SopremoFunction3<TextNode, IJsonNode, TextNode> {
+
+		private String DICT_ENDING = ".dict";
+
+		private String DEFAULT_DICTIONARY_PATH = System.getProperty("user.dir")
+				+ "/resources/dictionaries/";
+
+		private String KEY_VALUE_SEPARATOR = "\\|";
+
+		private String VALUE_SEPARATOR = ";";
+
+		@Override
+		protected IJsonNode call(TextNode inputNode, IJsonNode dictionaryPath,
+				TextNode dictNameNode) {
+			Map<String, String> mappings = this
+					.loadDictionary(
+							(dictionaryPath instanceof NullNode) ? this.DEFAULT_DICTIONARY_PATH
+									: dictionaryPath.toString(), dictNameNode
+									.toString());
+			String input = inputNode.toString();
+			String result = input;
+			String sub;
+
+			if (mappings.containsKey(input)) {
+				result = mappings.get(input);
+			} else if (mappings.containsValue(input)) {
+				result = input;
+			} else if ((sub = this.mappingSimilarTo(input, mappings)) != null) {
+				result = sub;
+			} else {
+				// for unknown entities
+				result = input;
+			}
+			return TextNode.valueOf(result);
+		}
+
+		// we also map similar strings
+		private String mappingSimilarTo(String input,
+				Map<String, String> mappings) {
+			for (String value : mappings.values()) {
+				if (input.startsWith(value) || input.endsWith(value)) {
+					return value;
+				}
+			}
+			return null;
+		}
+
+		private Map<String, String> loadDictionary(String dictionaryPath,
+				String dictionaryName) {
+			Map<String, String> mappings = new HashMap<String, String>();
+			if (dictionaryName == null || "".equals(dictionaryName)) {
+				return mappings;
+			}
+			try {
+				BufferedReader br = new BufferedReader(new FileReader(
+						dictionaryPath + dictionaryName + this.DICT_ENDING));
+				String line, key;
+				String[] keyValues, values;
+
+				try {
+					while ((line = br.readLine()) != null) {
+						keyValues = line.split(this.KEY_VALUE_SEPARATOR);
+						key = keyValues[0];
+						values = keyValues[1].split(this.VALUE_SEPARATOR);
+						for (String value : values) {
+							// we have to put the key-value pairs in reversed
+							// order to allow multiple mappings from the
+							// same shortcut (key) to different spellings
+							// (values)
+							mappings.put(value, key);
+						}
+					}
+					br.close();
+				} catch (IOException e) {
+					e.printStackTrace();
+
+					// if an error occurs we just return an empty map to allow
+					// further execution of the meteor script
+					return new HashMap<String, String>();
+				}
+			} catch (FileNotFoundException e) {
+				e.printStackTrace();
+
+				// if the specified dictionary doesn't exist we return the empty
+				// map to allow further execution of the
+				// meteor script
+				return mappings;
+			}
+			return mappings;
+		}
+	};
 
 }

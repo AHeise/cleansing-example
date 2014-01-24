@@ -1,4 +1,5 @@
 using cleansing;
+using udf;
 
 $usCongress = read from '../resources/govwild/input/OriginalUsCongress.json';
 
@@ -15,9 +16,16 @@ into [
 
     },
     entity $usCongressParties identified by $usCongress_scrubbed.party with {
-      
+    	originals: $usCongress_scrubbed._id,
+    	name: $usCongress_scrubbed.party,
+    	//type: {category: "party"}
     }
 ];
+
+$usCongressParties_scrubbed = scrub $usCongressParties with rules {
+	id: dict_replace("/home/fabian/workspace/git/hpi/GovWildMeteor/src/main/resources/govwild/scrub/", "parties"),
+	name: notContainedIn(["Unknown"])
+};
 
 write $usCongressPersons to '../resources/govwild/output/UsCongressPersons.json';
 write $usCongressParties to '../resources/govwild/output/UsCongressParties.json';

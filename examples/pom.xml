@@ -17,6 +17,17 @@
 	<dependencies>
 		<dependency>
 			<groupId>eu.stratosphere</groupId>
+			<artifactId>sopremo-base</artifactId>
+			<version>0.4.1</version>
+		</dependency>
+		<dependency>
+			<groupId>eu.stratosphere</groupId>
+			<artifactId>sopremo-testplan</artifactId>
+			<version>0.4.1</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>eu.stratosphere</groupId>
 			<artifactId>sopremo-query</artifactId>
 			<version>0.4.1</version>
 		</dependency>
