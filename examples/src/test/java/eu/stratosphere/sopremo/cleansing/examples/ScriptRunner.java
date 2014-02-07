@@ -63,7 +63,6 @@ public class ScriptRunner{
 
 		Assert.assertNotNull("could not parse script", plan);
 
-		// System.out.println(plan);
 		return plan;
 	}
 	
