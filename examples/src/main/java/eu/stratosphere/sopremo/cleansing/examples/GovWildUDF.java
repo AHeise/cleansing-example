@@ -30,10 +30,121 @@ import eu.stratosphere.sopremo.packages.BuiltinProvider;
 import eu.stratosphere.sopremo.type.ArrayNode;
 import eu.stratosphere.sopremo.type.IArrayNode;
 import eu.stratosphere.sopremo.type.IJsonNode;
+import eu.stratosphere.sopremo.type.IntNode;
 import eu.stratosphere.sopremo.type.NullNode;
 import eu.stratosphere.sopremo.type.TextNode;
 
 public class GovWildUDF implements BuiltinProvider {
+
+	@Name(noun = "extract_name")
+	public static class EXTRACT_NAME extends
+			SopremoFunction2<TextNode, TextNode> {
+
+		private transient DictionarySearch dict = new DictionarySearch();
+
+		@Override
+		protected IJsonNode call(TextNode valueNode, TextNode dictionary) {
+			System.out.println(valueNode.toString());
+			IArrayNode<IJsonNode> result = new ArrayNode<IJsonNode>(2);
+			result.set(1, new ArrayNode<TextNode>());
+			String value = valueNode.toString();
+
+			String addition;
+			while ((addition = this.dict.search(value, dictionary.toString(),
+					0, true, true)) != null) {
+				((IArrayNode<TextNode>) result.get(1)).add(TextNode
+						.valueOf(addition.trim()));
+				value = this.replaceAddition(value.trim(), addition.trim());
+			}
+			result.set(0, TextNode.valueOf(value.trim()));
+			return result;
+		}
+
+		private String replaceAddition(String value, String addition) {
+			String valueLC = " " + value.toLowerCase() + " ";
+			String additionLC = " " + addition.toLowerCase() + " ";
+			value = " " + value + " ";
+			int start;
+			while ((start = valueLC.indexOf(additionLC)) != -1) {
+				if (start == 0)
+					value = value.substring(additionLC.length() - 1);
+				else {
+					value = value.substring(0, start)
+							+ value.substring(start + additionLC.length());
+				}
+				valueLC = " " + value.trim().toLowerCase() + " ";
+			}
+			return value.trim();
+		}
+
+		// @Override
+		// protected IJsonNode call(TextNode valueNode, TextNode dictionary,
+		// TextNode id) {
+		// BooleanNode ignoreCase = BooleanNode.TRUE;
+		// System.out.println(id);
+		// IArrayNode<IJsonNode> result = new ArrayNode<IJsonNode>(2);
+		// StringBuilder builder = new StringBuilder();
+		// String value = valueNode.toString();
+		//
+		// value = extractSuffixes(dictionary, builder, value,
+		// ignoreCase.getBooleanValue());
+		//
+		// String suffixes = builder.toString().replace(".", "").trim();
+		// if (value.endsWith(",")) {
+		// value = value.substring(0, value.length() - 1);
+		// }
+		//
+		// result.set(0, TextNode.valueOf(value.trim()));
+		// result.set(1, TextNode.valueOf(suffixes));
+		//
+		// return result;
+		// }
+		//
+		// private String extractSuffixes(TextNode dictionary,
+		// StringBuilder builder, String value, boolean ignoreCase) {
+		// String suffix;
+		// while ((suffix = this.dict.search(value, dictionary.toString(), 0,
+		// ignoreCase, true)) != null) {
+		// builder.append(", ").append(suffix);
+		// value = this.replaceSuffix(value, suffix, ignoreCase);
+		// // value = value.replaceFirst(suffix, "");
+		// }
+		// builder.delete(0, 2);
+		// return value;
+		// }
+		//
+		// private String replaceSuffix(String value, String suffix,
+		// boolean ignoreCase) {
+		// int startIndex;
+		// int endIndex;
+		// String formattedValue = this.format(value);
+		// if (ignoreCase) {
+		// startIndex = formattedValue.toLowerCase().indexOf(
+		// this.format(suffix).toLowerCase());
+		// } else {
+		// startIndex = formattedValue.indexOf(this.format(suffix));
+		// }
+		// endIndex = startIndex + suffix.length();
+		// String deleteString = formattedValue
+		// .substring(startIndex, endIndex);
+		// return value.replace(deleteString, "").trim();
+		// }
+		//
+		// private String format(String value) {
+		// return " " + value.trim() + " ";
+		// }
+	};
+
+	@Name(noun = "array_get")
+	public static class ARRAY_GET extends
+			SopremoFunction2<IArrayNode<IJsonNode>, IntNode> {
+
+		@Override
+		protected IJsonNode call(IArrayNode<IJsonNode> array, IntNode index) {
+			return array.get(index.getIntValue());
+		}
+
+	}
 
 	@Name(noun = "normalize_name")
 	public static class NORMALIZE_NAME extends
@@ -203,8 +314,6 @@ public class GovWildUDF implements BuiltinProvider {
 			return input;
 		}
 	}
-	
-	public static DICTIONARY_REPLACEMENT DICTIONARY_REPLACEMENT = new DICTIONARY_REPLACEMENT();
 
 	@Name(noun = "dict_replace")
 	public static class DICTIONARY_REPLACEMENT extends
