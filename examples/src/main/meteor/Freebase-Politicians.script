@@ -1,0 +1,39 @@
+using cleansing;
+using govwild;
+
+$politicians_in = read from '../resources/govwild/input/OriginalFreebasePolitician.json';
+
+
+// SCRUBBING
+$politicians_scrubbed = scrub $politicians_in with rules {
+	_id: [required, concat_strings("_P")],
+	id: required,
+	name: [required, normalize_name("../resources/govwild/scrub/officialTitles.Prefix.dict")],
+	party: required?: default(""),
+	
+	governmentPositionsHeld: required?: default([]),
+	electionCampaigns: required?: default([]),
+	legislativeCommitteesServedOn: required?: default([])
+};
+write $politicians_scrubbed to '../resources/govwild/output/SCRUB_Politicians.json';
+
+
+// ENTITY EXTRACTION
+$politicians = map entities of $politicians_scrubbed into [
+	entity $politicians identified by $politicians_scrubbed.id with {
+		_id: $politicians_scrubbed._id,
+		party: $politicians_scrubbed.party,
+		
+		//firstName: $politicians_scrubbed.name[0],
+		//middleName: $politicians_scrubbed.name[1],
+		//lastName: $politicians_scrubbed.name[2],
+		//nameAddition: $politicians_scrubbed.name[3],
+		
+		fullName: $politicians_scrubbed.name,
+		
+		original: $politicians_scrubbed.id
+	}
+];
+write $politicians to '../resources/govwild/output/EXTRACT_Politicians.json';
+
+// write $politicians_scrubbed to '../../resources/govwild/output/Politicians.json';
