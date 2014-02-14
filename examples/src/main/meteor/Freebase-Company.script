@@ -19,7 +19,7 @@ $companies_scrubbed = scrub $companies_in with rules {
 	
 	// legal entities
 	subsidiaryCompanies: required?: default([]),
-	parentCompany: required?: default(""),
+	parentCompany: [required, split(",")]?: default([]),
 	companiesAcquired: required?: default([]),
 	acquiredBy: required?: default(""),
 	
@@ -29,12 +29,35 @@ $companies_scrubbed = scrub $companies_in with rules {
 	founders: required?: default([])
 };
 // ---------------------------------------------------------
-//write $companies_scrubbed to '../resources/govwild/output/SCRUB_Companies.json';
-// ---------------------------------------------------------
-$companies_shortened = transform $c in $companies_scrubbed into {
-	$c._id,
-	$c.name
-};
+write $companies_scrubbed to '../resources/govwild/output/SCRUB_Companies.json';
 // ---------------------------------------------------------
 
-write $companies_shortened to '../resources/govwild/output/SCRUB_Companies.json';
+// ---------------------------------------------------------
+// Entity Extraction
+// ---------------------------------------------------------
+//$companies_unrolled_sub = unroll $companies_scrubbed on "subsidiaryCompanies";
+//$companies_unrolled_par = unroll $companies_scrubbed on "parentCompany";
+// ---------------------------------------------------------
+$companies = map entities of $c in $companies_scrubbed into [
+	entity $companies identified by $c._id with {
+		$c._id,
+		$c.guid,
+		$c.name,
+		$c.companyType,
+		$c.industry,
+		$c.locations,
+		$c.headquarters,
+		$c.companiesAcquired,
+		$c.acquiredBy,
+		$c.advisors,
+		$c.boardMembers,
+		$c.founders,
+		$c.subsidiaryCompanies,
+		$c.parentCompany
+	}
+];
+// ---------------------------------------------------------
+write $companies to '../resources/govwild/output/FreebaseCompanies.json';
+// ---------------------------------------------------------
+
+//write $companies_shortened to '../resources/govwild/output/SCRUB_Companies.json';
