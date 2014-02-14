@@ -25,7 +25,7 @@ public class ScriptRunner{
 	
 	@Test
 	public void testSuccessfulExecution() throws IOException {
-		File scriptFile = new File("src/main/meteor/Freebase-Company.script");
+		File scriptFile = new File("src/main/meteor/usCongress.script");
 		final SopremoPlan plan = parseScript(scriptFile);
 
 		this.client.submit(plan, null, true);
