@@ -1,0 +1,8 @@
+5 FirstName --> Max(JaroWinkler, LookUp)   LookUp := sim(bill, william) = 1
+5 LastName --> JaroWinkler
+3 MiddleName --> 0.8 wenn 1 leer ist und eine source freebase, Max(JaroWinkler, (Lookup == 1 || Abbreviation == true)? 1 : 0)
+5 Birthday-Month --> own function(==: 1, <>: 1|2, !=: 0)
+3 Birthyear --> own function(1-Math.abs(b1-b2) / 100)
+3 Deathyear --> wie Birthyear
+1 State --> own function(1: states1 intersect states2 != empty)
+1 Party --> wie State
