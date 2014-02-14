@@ -1,0 +1,26 @@
+using cleansing;
+using udf;
+
+$usCongressPersons = read from '../resources/govwild/output/usCongress_scrubbedPersons.json';
+$usCongressPersons = sample $usCongressPersons selectEvery 1000;
+$FreebaseAdvisors = read from '../resources/govwild/output/FreebaseAdvisors.json';
+$FreebaseAdvisors = sample $FreebaseAdvisors selectEvery 1;
+$FreebasePoliticians = read from '../resources/govwild/output/Politicians.json';
+$FreebasePoliticians = sample $FreebasePoliticians selectEvery 10;
+
+$cluster = link records $usCongressPersons, $FreebasePoliticians
+	where 
+	levenshtein($usCongressPersons.firstName, $FreebasePoliticians.firstName) > 0.7 and
+	levenshtein($usCongressPersons.lastName, $FreebasePoliticians.lastName) > 0.7;
+
+//			5 FirstName --> Max(JaroWinkler, LookUp)   LookUp := sim(bill, william) = 1
+//			5 LastName --> JaroWinkler
+//			3 MiddleName --> 0.8 wenn 1 leer ist und eine source freebase, Max(JaroWinkler, (Lookup == 1 || Abbreviation == true)? 1 : 0)
+//			5 Birthday-Month --> own function(==: 1, <>: 1|2, !=: 0)
+//			3 Birthyear --> own function(1-Math.abs(b1-b2) / 100)
+//			3 Deathyear --> wie Birthyear
+//			1 State --> own function(1: states1 intersect states2 != empty)
+//			1 Party --> wie State	
+	
+	
+write $cluster to '../resources/govwild/output/cluster.json';

@@ -2,8 +2,8 @@ using cleansing;
 using udf;
 
 scrubName = fn(name) {like(name, "([a-zA-Z]*[0-9]+[a-zA-Z]*)*")? "" : name};
-//extractName = fn(name, index) { normalize_name(remove_all_characters(name, "[]\\\'"), "/home/tommy-neubert/Arbeitsfläche/Hiwi/Repositories/cleansing-example/examples/src/main/resources/govwild/scrub/officialTitles.Prefix.dict")[index] };
-//extractName = fn(name, index) { normalize_name(remove_all_characters(name, "[]\\\'"), "/home/tommy-neubert/Arbeitsfläche/Hiwi/Repositories/cleansing-example/examples/src/main/resources/govwild/scrub/officialTitles.Prefix.dict")[index] };
+//extractName = fn(name, index) { normalize_name(remove_all_characters(name, "[]\\\'"), "/home/fabian/workspace/git/hpi/GovWildMeteor/src/main/resources/govwild/scrub/officialTitles.Prefix.dict")[index] };
+//extractName = fn(name, index) { normalize_name(remove_all_characters(name, "[]\\\'"), "/home/fabian/workspace/git/hpi/GovWildMeteor/src/main/resources/govwild/scrub/officialTitles.Prefix.dict")[index] };
 
 $companies_in = read from '../resources/govwild/input/OriginalFreebaseCompany.json';
 
@@ -28,10 +28,10 @@ $persons = map entities of $companies_unrolled into [
 		_id: concat_strings($companies_unrolled._id, "_PA_", remove_all_characters($companies_unrolled.advisors, " ")),
 		worksFor: concat_strings($companies_unrolled._id),
 		
-		firstName: scrubName(normalize_whitespaces(normalize_name(remove_all_characters($companies_unrolled.advisors, "[]\\\'"), "/home/tommy-neubert/Arbeitsfläche/Hiwi/Repositories/cleansing-example/examples/src/main/resources/govwild/scrub/officialTitles.Prefix.dict")[0])),
-		middleName: scrubName(normalize_whitespaces(normalize_name(remove_all_characters($companies_unrolled.advisors, "[]\\\'"), "/home/tommy-neubert/Arbeitsfläche/Hiwi/Repositories/cleansing-example/examples/src/main/resources/govwild/scrub/officialTitles.Prefix.dict")[1])),
-		lastName: scrubName(normalize_whitespaces(normalize_name(remove_all_characters($companies_unrolled.advisors, "[]\\\'"), "/home/tommy-neubert/Arbeitsfläche/Hiwi/Repositories/cleansing-example/examples/src/main/resources/govwild/scrub/officialTitles.Prefix.dict")[2])),
-		nameAddition: scrubName(normalize_whitespaces(normalize_name(remove_all_characters($companies_unrolled.advisors, "[]\\\'"), "/home/tommy-neubert/Arbeitsfläche/Hiwi/Repositories/cleansing-example/examples/src/main/resources/govwild/scrub/officialTitles.Prefix.dict")[3]))
+		firstName: scrubName(normalize_whitespaces(normalize_name(remove_all_characters($companies_unrolled.advisors, "[]\\\'"), "/home/fabian/workspace/git/hpi/GovWildMeteor/src/main/resources/govwild/scrub/officialTitles.Prefix.dict")[0])),
+		middleName: scrubName(normalize_whitespaces(normalize_name(remove_all_characters($companies_unrolled.advisors, "[]\\\'"), "/home/fabian/workspace/git/hpi/GovWildMeteor/src/main/resources/govwild/scrub/officialTitles.Prefix.dict")[1])),
+		lastName: scrubName(normalize_whitespaces(normalize_name(remove_all_characters($companies_unrolled.advisors, "[]\\\'"), "/home/fabian/workspace/git/hpi/GovWildMeteor/src/main/resources/govwild/scrub/officialTitles.Prefix.dict")[2])),
+		nameAddition: scrubName(normalize_whitespaces(normalize_name(remove_all_characters($companies_unrolled.advisors, "[]\\\'"), "/home/fabian/workspace/git/hpi/GovWildMeteor/src/main/resources/govwild/scrub/officialTitles.Prefix.dict")[3]))
 	}
 ];
 // ---------------------------------------------------------

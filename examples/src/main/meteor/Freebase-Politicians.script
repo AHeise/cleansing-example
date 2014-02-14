@@ -10,7 +10,7 @@ $parties_in = read from '../resources/govwild/input/OriginalFreebasePoliticalPar
 $politicians_scrubbed = scrub $politicians_in with rules {
 	_id: [required, concat_strings("_P")],
 	id: required,
-	name: [required, normalize_name("/home/tommy-neubert/Arbeitsfläche/Hiwi/Repositories/cleansing-example/examples/src/main/resources/govwild/scrub/officialTitles.Prefix.dict")],
+	name: [required, normalize_name("/home/fabian/workspace/git/hpi/GovWildMeteor/src/main/resources/govwild/scrub/officialTitles.Prefix.dict")],
 	party: required?: default(""),
 	
 	governmentPositionsHeld: required?: default([]),
@@ -18,7 +18,7 @@ $politicians_scrubbed = scrub $politicians_in with rules {
 	legislativeCommitteesServedOn: required?: default([])
 };
 $parties_scrubbed = scrub $parties_in with rules {
-	_id: [required, notContainedIn([""]), remove_all_characters("';"), dict_replace("/home/tommy-neubert/Arbeitsfläche/Hiwi/Repositories/cleansing-example/examples/src/main/resources/govwild/scrub/", "parties")],
+	_id: [required, notContainedIn([""]), remove_all_characters("';"), dict_replace("/home/fabian/workspace/git/hpi/GovWildMeteor/src/main/resources/govwild/scrub/", "parties")],
 	name: [required, remove_all_characters("'"), notContainedIn([""])],
 	country: required?: default(null),
 	

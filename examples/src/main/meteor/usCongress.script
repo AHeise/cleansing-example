@@ -1,7 +1,7 @@
 using cleansing;
 using udf;
 
-$usCongress = read from '../resources/govwild/input/minicongress.json';
+$usCongress = read from '../resources/govwild/input/OriginalUsCongress.json';
 
 $usCongress_scrubbed = scrub $usCongress with rules {
 	_id: [required, concat_strings("_P")],
@@ -43,5 +43,9 @@ $usCongressParties_scrubbed = scrub $usCongressParties with rules {
 	name: notContainedIn(["Unknown"])
 };
 
-write $usCongressPersons to '../resources/govwild/output/usCongress_scrubbedPersons.json';
+$usCongressPersons_scrubbed = scrub $usCongressPersons with rules {
+	lastName: [camelCase(), illegalCharacters(", ")?: removeIllegalCharacters]
+};
+
+write $usCongressPersons_scrubbed to '../resources/govwild/output/usCongress_scrubbedPersons.json';
 write $usCongressParties_scrubbed to '../resources/govwild/output/usCongress_scrubbedParties.json';
