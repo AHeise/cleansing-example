@@ -3,11 +3,13 @@ using udf;
 
 $usCongress = read from '../resources/govwild/input/OriginalUsCongress.json';
 
+$usCongress = sample $usCongress selectEvery 100;
+
 $usCongress_scrubbed = scrub $usCongress with rules {
 	_id: [required, concat_strings("_P")],
 	memberName: required,
 	biography: required,
-	party: [required, dict_replace("/home/fabian/workspace/git/hpi/GovWildMeteor/src/main/resources/govwild/scrub/", "parties")],
+	party: [required, dict_replace("/home/tommy-neubert/Arbeitsfläche/Hiwi/Repositories/cleansing-example/examples/src/main/resources/govwild/scrub/", "parties")],
     congress: required
 };
 
@@ -29,7 +31,7 @@ into [
                     startYear: split($usCongress_scrubbed.congress, "\(")[1] ? split(replace(split($usCongress_scrubbed.congress, "\(")[1],  '[^0-9-]', ""), "-")[0] as int : null,
                     endYear: split($usCongress_scrubbed.congress, "\(")[1] ? split(replace(split($usCongress_scrubbed.congress, "\(")[1],  '[^0-9-]', ""), "-")[0] as int : null,
                     position : $usCongress_scrubbed.position,
-                    legalEntity : dict_replace($usCongress_scrubbed.state, "/home/fabian/workspace/git/hpi/GovWildMeteor/src/main/resources/govwild/scrub/", "states")}
+                    legalEntity : dict_replace($usCongress_scrubbed.state, "/home/tommy-neubert/Arbeitsfläche/Hiwi/Repositories/cleansing-example/examples/src/main/resources/govwild/scrub/", "states")}
         },
     },
     entity $usCongressParties identified by $usCongress_scrubbed.party with {
