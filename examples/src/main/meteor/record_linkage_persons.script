@@ -3,6 +3,7 @@ using udf;
 
 compareParty = fn(party1, party2) { (lower_case(party1) == lower_case(party2) && (party1 != ""))? 1 : 0 };
 compareMidName = fn(midName1, midName2) { (midName1 == "" || midName2 == "")? 0.8 : jaroWinkler(midName1,midName2)};
+compareYear = fn(year1,year2) { ((year1 && year2) && (year1 == year2)) ? 1 : 0 };
 
 $usCongressPersons = read from '../resources/govwild/output/usCongress_scrubbedPersons.json';
 $usCongressPersons = sample $usCongressPersons selectEvery 1;
@@ -18,13 +19,13 @@ $cluster = link records $usCongressPersons, $FreebasePoliticians
 		5 * jaroWinkler($usCongressPersons.lastName, $FreebasePoliticians.lastName) +
 		3 * compareMidName($usCongressPersons.middleName, $FreebasePoliticians.middleName) +	// TODO: Lookup + Abbreviation 
 		// Party
-		(compareParty($usCongressPersons.worksFor.first.legalEntity, $FreebasePoliticians.currentParty)
+		(compareParty($usCongressPersons.worksFor.first.legalEntity, $FreebasePoliticians.worksFor.first.legalEntity) +
 	
-		// Year Comparison not possible because Freebase has no year informations
-		// Original GovWild handles that with "dont use" flag
+		compareYear($usCongressPersons.worksFor.last.startYear, $FreebasePoliticians.worksFor.last.startYear) +
+		compareYear($usCongressPersons.worksFor.last.endYear, $FreebasePoliticians.worksFor.last.endYear) +
 				
 		// Normalization
-		)/14 > 0.95 
+		)/16 > 0.95 
 	);
 
 //		Threshold = 0.95
