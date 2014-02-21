@@ -22,7 +22,7 @@ $politicians_scrubbed = scrub $politicians_in with rules {
 $parties_scrubbed = scrub $parties_in with rules {
 	_id: [required, notContainedIn([""])],
 	id: [required, notContainedIn([""])],
-	name: [required, remove_all_characters("'"), notContainedIn([""]), dict_replace(path(), "parties")],	
+	name: [required, remove_all_characters("'"), notContainedIn([""])],	
 	politiciansInThisParty: [required, notContainedIn([[]])],
 };
 $tenure_scrubbed = scrub $tenure_in with rules {
@@ -58,73 +58,71 @@ write $parties_unrolled to '../resources/govwild/output/testoutput/SCRUB_UNROLLE
 // ---------------------------------------------------------
 
 // TODO: Fix Joincondition to allow following example + add possibility to allow field: constant_value
-//$politicians, $parties = map entities of $politicians_scrubbed, $tenure_scrubbed, $parties_unrolled where (($politicians_scrubbed.party[1:1] == $tenure_scrubbed.id[1:1]) and ($tenure_scrubbed.id[1:1] == $parties_unrolled.politiciansInThisParty[1:1])) into [
-//	entity $politicians identified by $politicians_scrubbed._id with {
-//		originals: [$politicians_scrubbed._id],
-//		
-//		firstName: $politicians_scrubbed.name[0],
-//		middleName: $politicians_scrubbed.name[1],
-//		lastName: $politicians_scrubbed.name[2],
-//		nameAddition: $politicians_scrubbed.name[3],
-//		
-//		worksFor: {
-//			first: {
-//				legalEntity: dict_replace($parties_unrolled.name, "/home/tommy-neubert/Arbeitsfläche/Hiwi/Repositories/cleansing-example/examples/src/main/resources/govwild/scrub/", "parties")
-//				congressNumber: null
-//			},
-//			last: {
-//				startYear: ($tenure_scrubbed.from)? (split($tenure_scrubbed.from, "-")[0] as int) : null,
-//				endYear: ($tenure_scrubbed.to)? (split($tenure_scrubbed.to, "-")[0] as int) : null,
-//				congressNumber: null,
-//				legalEntity: null
-//			}
-//		},
-//			
-//		// fields to align shema
-//		biography: "",
-//		birth: null,
-//		death: null,
-//		position: null
-//	},
-//	entity $parties identified by $parties_unrolled.id with {
-//		original: $parties_unrolled._id,
-//		name: dict_replace($parties_unrolled.name, "/home/tommy-neubert/Arbeitsfläche/Hiwi/Repositories/cleansing-example/examples/src/main/resources/govwild/scrub/", "parties"),
-//		type: {category: "party"}
-//	}
-//];
-$politicians, $parties = map entities of $p in $politiciansJoindWithTenures, $pa in $parties_unrolled where ($p.id[1:1] == $pa.politiciansInThisParty[1:1] ) into [
-	entity $politicians identified by $p.p_id with {
-		originals: [$p.p_id],
+$politicians, $parties = map entities of $politicians_scrubbed, $tenure_scrubbed, $parties_unrolled where (($politicians_scrubbed.party == $tenure_scrubbed.id) and ($tenure_scrubbed.id == $parties_unrolled.politiciansInThisParty)) into [
+	entity $politicians identified by $politicians_scrubbed._id with {
+		originals: all($politicians_scrubbed._id),
 		
-		firstName: $p.p.name[0],
-		middleName: $p.p.name[1],
-		lastName: $p.p.name[2],
-		nameAddition: $p.p.name[3],
-		
-		worksFor: [
-			 {
-				legalEntity: dict_replace($pa.name, path(), "parties"),
+		firstName: $politicians_scrubbed.name[0],
+		middleName: $politicians_scrubbed.name[1],
+		lastName: $politicians_scrubbed.name[2],
+		nameAddition: $politicians_scrubbed.name[3],
+		worksFor: [ 
+			{
+				legalEntity: $parties_unrolled.id,
 				congressNumber: null
 			},
 			{
-				startYear: ($p.t.from)? (split($p.t.from, "-")[0] as int) : null,
-				endYear: ($p.t.to)? (split($p.t.to, "-")[0] as int) : null,
+				startYear: ($tenure_scrubbed.from)? (split($tenure_scrubbed.from, "-")[0] as int) : null,
+				endYear: ($tenure_scrubbed.to)? (split($tenure_scrubbed.to, "-")[0] as int) : null,
 				congressNumber: null,
 				legalEntity: null
 			}
 		],
-			
+		// fields to align shema
 		biography: "",
 		birth: null,
 		death: null,
 		position: null
 	},
-	entity $parties identified by $pa.id with {
-		original: $pa._id,
-		name: dict_replace($pa.name, path(), "parties"),
+	entity $parties identified by $parties_unrolled.id with {
+		original: $parties_unrolled._id,
+		name: $parties_unrolled.name,
 		type: {category: "party"}
 	}
 ];
+//$politicians, $parties = map entities of $p in $politiciansJoindWithTenures, $pa in $parties_unrolled where ($p.id[1:1] == $pa.politiciansInThisParty[1:1] ) into [
+//	entity $politicians identified by $p.p_id with {
+//		originals: all($p.p_id),
+//		
+//		firstName: $p.p.name[0],
+//		middleName: $p.p.name[1],
+//		lastName: $p.p.name[2],
+//		nameAddition: $p.p.name[3],
+//		
+//		worksFor: [
+//			 {
+//				legalEntity: $pa.id,
+//				congressNumber: null
+//			},
+//			{
+//				startYear: ($p.t.from)? (split($p.t.from, "-")[0] as int) : null,
+//				endYear: ($p.t.to)? (split($p.t.to, "-")[0] as int) : null,
+//				congressNumber: null,
+//				legalEntity: null
+//			}
+//		],
+//			
+//		biography: "",
+//		birth: null,
+//		death: null,
+//		position: null
+//	},
+//	entity $parties identified by $pa.id with {
+//		original: $pa._id,
+//		name: $pa.name,
+//		type: {category: "party"}
+//	}
+//];
 // ---------------------------------------------------------
 write $politicians to '../resources/govwild/output/testoutput/EXTRACT_Politicians.json';
 //write $parties to '../resources/govwild/output/EXTRACT_Parties.json';
@@ -136,9 +134,13 @@ write $politicians to '../resources/govwild/output/testoutput/EXTRACT_Politician
 $politicians_clean = scrub $politicians with rules {
 	lastName: [required, notContainedIn([""])],
 };
+
+$parties_clean = scrub $parties with rules {
+	name: notContainedIn(["Unknown"])
+};
 // ---------------------------------------------------------
 //write $politicians_clean to '../resources/govwild/output/SCRUB2_Politicians.json';
 // ---------------------------------------------------------
 
 write $politicians_clean to '../resources/govwild/output/Politicians.json';
-write $parties to '../resources/govwild/output/PoliticalParties.json';
+write $parties_clean to '../resources/govwild/output/PoliticalParties.json';

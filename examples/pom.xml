@@ -17,6 +17,11 @@
 	<dependencies>
 		<dependency>
 			<groupId>eu.stratosphere</groupId>
+			<artifactId>sopremo-cleansing</artifactId>
+			<version>0.1</version>
+		</dependency>
+		<dependency>
+			<groupId>eu.stratosphere</groupId>
 			<artifactId>sopremo-base</artifactId>
 			<version>0.4.1</version>
 		</dependency>
