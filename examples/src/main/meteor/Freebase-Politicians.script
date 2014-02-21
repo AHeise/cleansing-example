@@ -3,6 +3,9 @@ using udf;
 
 value = fn(value) { value };
 
+path = fn() { "/home/fabian/workspace/git/cleansing-example/examples/src/main/resources/govwild/scrub/" };
+titlesPath = fn() {"/home/fabian/workspace/git/cleansing-example/examples/src/main/resources/govwild/scrub/officialTitles.Prefix.dict"};
+
 $politicians_in = read from '../resources/govwild/input/OriginalFreebasePolitician.json';
 $parties_in = read from '../resources/govwild/input/OriginalFreebasePoliticalParty.json';
 $tenure_in = read from '../resources/govwild/input/OriginalFreebasePoliticalPartyTenure.json';
@@ -13,13 +16,13 @@ $tenure_in = read from '../resources/govwild/input/OriginalFreebasePoliticalPart
 $politicians_scrubbed = scrub $politicians_in with rules {
 	_id: [required, notContainedIn([""]), concat_strings("_P")],
 	id: required,
-	name: [required, normalize_name("/home/tommy-neubert/Arbeitsfläche/Hiwi/Repositories/cleansing-example/examples/src/main/resources/govwild/scrub/officialTitles.Prefix.dict")],
+	name: [required, normalize_name(titlesPath())],
 	party: required?: default(""),
 };
 $parties_scrubbed = scrub $parties_in with rules {
 	_id: [required, notContainedIn([""])],
 	id: [required, notContainedIn([""])],
-	name: [required, remove_all_characters("'"), notContainedIn([""]), dict_replace("/home/tommy-neubert/Arbeitsfläche/Hiwi/Repositories/cleansing-example/examples/src/main/resources/govwild/scrub/", "parties")],	
+	name: [required, remove_all_characters("'"), notContainedIn([""]), dict_replace(path(), "parties")],	
 	politiciansInThisParty: [required, notContainedIn([[]])],
 };
 $tenure_scrubbed = scrub $tenure_in with rules {
@@ -98,28 +101,27 @@ $politicians, $parties = map entities of $p in $politiciansJoindWithTenures, $pa
 		lastName: $p.p.name[2],
 		nameAddition: $p.p.name[3],
 		
-		worksFor: {
-			first: {
-				legalEntity: dict_replace($pa.name, "/home/tommy-neubert/Arbeitsfläche/Hiwi/Repositories/cleansing-example/examples/src/main/resources/govwild/scrub/", "parties")
-				//congressNumber: null
+		worksFor: [
+			 {
+				legalEntity: dict_replace($pa.name, path(), "parties"),
+				congressNumber: null
 			},
-			last: {
+			{
 				startYear: ($p.t.from)? (split($p.t.from, "-")[0] as int) : null,
 				endYear: ($p.t.to)? (split($p.t.to, "-")[0] as int) : null,
-				//congressNumber: null,
-				//legalEntity: null
+				congressNumber: null,
+				legalEntity: null
 			}
-		},
+		],
 			
-		// fields to align shema
-		//biography: "",
-		//birth: null,
-		//death: null,
-		//position: null
+		biography: "",
+		birth: null,
+		death: null,
+		position: null
 	},
 	entity $parties identified by $pa.id with {
 		original: $pa._id,
-		name: dict_replace($pa.name, "/home/tommy-neubert/Arbeitsfläche/Hiwi/Repositories/cleansing-example/examples/src/main/resources/govwild/scrub/", "parties"),
+		name: dict_replace($pa.name, path(), "parties"),
 		type: {category: "party"}
 	}
 ];

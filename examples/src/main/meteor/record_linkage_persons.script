@@ -19,10 +19,10 @@ $cluster = link records $usCongressPersons, $FreebasePoliticians
 		5 * jaroWinkler($usCongressPersons.lastName, $FreebasePoliticians.lastName) +
 		3 * compareMidName($usCongressPersons.middleName, $FreebasePoliticians.middleName) +	// TODO: Lookup + Abbreviation 
 		// Party
-		(compareParty($usCongressPersons.worksFor.first.legalEntity, $FreebasePoliticians.worksFor.first.legalEntity) +
+		compareParty($usCongressPersons.worksFor.first.legalEntity, $FreebasePoliticians.worksFor.first.legalEntity) +
 	
 		compareYear($usCongressPersons.worksFor.last.startYear, $FreebasePoliticians.worksFor.last.startYear) +
-		compareYear($usCongressPersons.worksFor.last.endYear, $FreebasePoliticians.worksFor.last.endYear) +
+		compareYear($usCongressPersons.worksFor.last.endYear, $FreebasePoliticians.worksFor.last.endYear)
 				
 		// Normalization
 		)/16 > 0.95 
