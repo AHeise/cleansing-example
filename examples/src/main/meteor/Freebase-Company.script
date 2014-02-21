@@ -1,6 +1,9 @@
 using cleansing;
 using udf;
 
+//path constants
+oranizationSuffixPath = fn() {"/home/fabian/workspace/git/cleansing-example/examples/src/main/resources/govwild/scrub/organizationSuffix.dict"};
+
 $companies_in = read from '../resources/govwild/input/OriginalFreebaseCompany.json';
 
 // ---------------------------------------------------------
@@ -9,7 +12,7 @@ $companies_in = read from '../resources/govwild/input/OriginalFreebaseCompany.js
 $companies_scrubbed = scrub $companies_in with rules {
 	_id: [required, concat_strings("_L")],
 	id: required,
-	name: [required, extract_name("/home/tommy-neubert/Arbeitsfläche/Hiwi/Repositories/cleansing-example/examples/src/main/resources/govwild/scrub/organizationSuffix.dict")], //array_get(0), remove_all_characters("\'"), notContainedIn([""])],
+	name: [required, extract_name(oranizationSuffixPath())], //array_get(0), remove_all_characters("\'"), notContainedIn([""])],
 	companyType: required?: default("normal company"),
 	industry: required?: default(""),
 	

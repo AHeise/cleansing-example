@@ -3,8 +3,9 @@ using udf;
 
 value = fn(value) { value };
 
+//path constants
 path = fn() { "/home/fabian/workspace/git/cleansing-example/examples/src/main/resources/govwild/scrub/" };
-titlesPath = fn() {"/home/fabian/workspace/git/cleansing-example/examples/src/main/resources/govwild/scrub/officialTitles.Prefix.dict"};
+officialTitlesPath = fn() {"/home/fabian/workspace/git/cleansing-example/examples/src/main/resources/govwild/scrub/officialTitles.Prefix.dict"};
 
 $politicians_in = read from '../resources/govwild/input/OriginalFreebasePolitician.json';
 $parties_in = read from '../resources/govwild/input/OriginalFreebasePoliticalParty.json';
@@ -16,7 +17,7 @@ $tenure_in = read from '../resources/govwild/input/OriginalFreebasePoliticalPart
 $politicians_scrubbed = scrub $politicians_in with rules {
 	_id: [required, notContainedIn([""]), concat_strings("_P")],
 	id: required,
-	name: [required, normalize_name(titlesPath())],
+	name: [required, normalize_name(officialTitlesPath())],
 	party: required?: default(""),
 };
 $parties_scrubbed = scrub $parties_in with rules {
