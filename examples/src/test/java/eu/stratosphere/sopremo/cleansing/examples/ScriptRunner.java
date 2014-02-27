@@ -30,7 +30,7 @@ public class ScriptRunner{
 		File scriptFile3 = new File("src/main/meteor/Freebase-Politicians.script");
 		File scriptFile4 = new File("src/main/meteor/record_linkage_persons.script");
 		File scriptFile5 = new File("src/main/meteor/Freebase-Company.script");
-		final SopremoPlan plan = parseScript(scriptFile4);
+		final SopremoPlan plan = parseScript(scriptFile3);
 
 		this.client.submit(plan, null, true);
 	}

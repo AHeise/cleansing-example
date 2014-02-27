@@ -15,14 +15,14 @@ $FreebasePoliticians = sample $FreebasePoliticians selectEvery 1;
 $cluster = link records $usCongressPersons, $FreebasePoliticians
 	where  (
 		// Names
-		(5 * jaroWinkler($usCongressPersons.firstName, $FreebasePoliticians.firstName) +		// TODO: Lookup
-		5 * jaroWinkler($usCongressPersons.lastName, $FreebasePoliticians.lastName) +
-		3 * compareMidName($usCongressPersons.middleName, $FreebasePoliticians.middleName) +	// TODO: Lookup + Abbreviation 
+		(5 * jaroWinkler($usCongressPersons.firstName, $FreebasePoliticians._value.firstName) +		// TODO: Lookup
+		5 * jaroWinkler($usCongressPersons.lastName, $FreebasePoliticians._value.lastName) +
+		3 * compareMidName($usCongressPersons.middleName, $FreebasePoliticians._value.middleName) +	// TODO: Lookup + Abbreviation 
 		// Party
-		compareParty($usCongressPersons.worksFor.first.legalEntity, $FreebasePoliticians.worksFor.first.legalEntity) +
+		compareParty($usCongressPersons.worksFor.first.legalEntity, $FreebasePoliticians._value.worksFor.first.legalEntity) +
 	
-		compareYear($usCongressPersons.worksFor.last.startYear, $FreebasePoliticians.worksFor.last.startYear) +
-		compareYear($usCongressPersons.worksFor.last.endYear, $FreebasePoliticians.worksFor.last.endYear)
+		compareYear($usCongressPersons.worksFor.last.startYear, $FreebasePoliticians._value.worksFor.last.startYear) +
+		compareYear($usCongressPersons.worksFor.last.endYear, $FreebasePoliticians._value.worksFor.last.endYear)
 				
 		// Normalization
 		)/16 > 0.95 
