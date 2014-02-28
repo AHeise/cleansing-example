@@ -4,7 +4,7 @@ $persons_cluster = read from '../resources/govwild/output/cluster.json';
 
 $persons = fuse $p in $persons_cluster
 	with weights {
-		freebase: 0.7*{biography: 0.0, birth: 0.0, death: 0.0, position: 0.0},
+		freebase: 0.7*{biography: 0.0, birth: 0.0, death: 0.0},
 		uscongress: 1.0
 	}
 with resolutions {
