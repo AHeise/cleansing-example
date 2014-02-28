@@ -80,14 +80,14 @@ $politicians, $parties = map entities of $politicians_scrubbed, $tenure_scrubbed
 				startYear: ($tenure_scrubbed.from)? (split($tenure_scrubbed.from, "-")[0] as int) : null,
 				endYear: ($tenure_scrubbed.to)? (split($tenure_scrubbed.to, "-")[0] as int) : null,
 				congressNumber: null,
-				legalEntity: null
+				legalEntity: null,
+				position: null
 			}
 		],
 		// fields to align shema
 		biography: "",
 		birth: null,
-		death: null,
-		position: null
+		death: null
 	},
 	entity $parties identified by $parties_unrolled.id with {
 		original: $parties_unrolled._id,

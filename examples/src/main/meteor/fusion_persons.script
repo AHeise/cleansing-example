@@ -15,11 +15,10 @@ with resolutions {
 	lastName: mostFrequent,
 	nameAddition: mergeDistinct,
 	
-	worksFor: mergeDistinct,
+	worksFor: mostFrequent,
 	biography: mostFrequent,
 	birth: mostFrequent,
 	death: mostFrequent,
-	position: mostFrequent
 };
 
 write $persons to '../resources/govwild/output/persons_FINAL.json';
