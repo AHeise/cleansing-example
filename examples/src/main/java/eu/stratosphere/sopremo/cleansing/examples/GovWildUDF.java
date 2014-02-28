@@ -30,6 +30,7 @@ import eu.stratosphere.sopremo.packages.BuiltinProvider;
 import eu.stratosphere.sopremo.type.ArrayNode;
 import eu.stratosphere.sopremo.type.IArrayNode;
 import eu.stratosphere.sopremo.type.IJsonNode;
+import eu.stratosphere.sopremo.type.IObjectNode;
 import eu.stratosphere.sopremo.type.IntNode;
 import eu.stratosphere.sopremo.type.NullNode;
 import eu.stratosphere.sopremo.type.TextNode;
@@ -142,6 +143,16 @@ public class GovWildUDF implements BuiltinProvider {
 		@Override
 		protected IJsonNode call(IArrayNode<IJsonNode> array, IntNode index) {
 			return array.get(index.getIntValue());
+		}
+	}
+	
+	@Name(noun = "getValue")
+	public static class GET_VALUE extends
+			SopremoFunction2<IObjectNode, TextNode> {
+
+		@Override
+		protected IJsonNode call(IObjectNode object, TextNode field) {
+			return object.get(field.toString());
 		}
 
 	}

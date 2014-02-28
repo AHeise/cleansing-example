@@ -19,27 +19,24 @@ $usCongress_scrubbed = scrub $usCongress with rules {
 $usCongressPersons, $usCongressParties  = map entities of $usCongress_scrubbed
 into [
     entity $usCongressPersons identified by $usCongress_scrubbed._id with {
-        _source: "uscongress",
-        _value: {
-        	id: $usCongress_scrubbed._id,
-        	originals : all($usCongress_scrubbed._id),
-        	firstName: trim(split($usCongress_scrubbed.memberName, " ")[1]),
-        	middleName: split($usCongress_scrubbed.memberName, " ")[2] ?: null,
-        	lastName: split($usCongress_scrubbed.memberName, ",")[0],
+        id: $usCongress_scrubbed._id,
+       	originals : all($usCongress_scrubbed._id),
+       	firstName: trim(split($usCongress_scrubbed.memberName, " ")[1]),
+       	middleName: split($usCongress_scrubbed.memberName, " ")[2] ?: null,
+       	lastName: split($usCongress_scrubbed.memberName, ",")[0],
       	//path constants     nameAddition: remove_all_characters(split($usCongress_scrubbed.memberName, " ")[3] ?:"", "()") ?: null,
-	        biography: $usCongress_scrubbed.biography,
-    	    birth : split(replace($usCongress_scrubbed.birthDeath ? : "", '[^0-9-]', ""), "-")[0] ? split(replace($usCongress_scrubbed.birthDeath ? : "", '[^0-9-]', ""), "-")[0] as int : null,
-        	death : split(replace($usCongress_scrubbed.birthDeath ? : "", '[^0-9-]', ""), "-")[1] ? split(replace($usCongress_scrubbed.birthDeath ? : "", '[^0-9-]', ""), "-")[1] as int : null,
-        	worksFor: [ {//legalEntity : dict_replace($usCongressParties.id, path(), "parties"),
-            	        congressNumber: (split($usCongress_scrubbed.congress, "\(") ? split($usCongress_scrubbed.congress, "\(")[0] : $usCongress_scrubbed.congress) as int},
-                	    {congressNumber: (split($usCongress_scrubbed.congress, "\(") ? split($usCongress_scrubbed.congress, "\(")[0] : $usCongress_scrubbed.congress) as int,
-                    	startYear: split($usCongress_scrubbed.congress, "\(")[1] ? split(replace(split($usCongress_scrubbed.congress, "\(")[1],  '[^0-9-]', ""), "-")[0] as int : null,
-                    	endYear: split($usCongress_scrubbed.congress, "\(")[1] ? split(replace(split($usCongress_scrubbed.congress, "\(")[1],  '[^0-9-]', ""), "-")[0] as int : null,
-                    	position : $usCongress_scrubbed.position,
-                    	legalEntity : dict_replace($usCongress_scrubbed.state, path(), "states")}
-        	],
-        	//worksFor2 : dict_replace($usCongressParties.id, path(), "parties")
-    	}
+        biography: $usCongress_scrubbed.biography,
+    	birth : split(replace($usCongress_scrubbed.birthDeath ? : "", '[^0-9-]', ""), "-")[0] ? split(replace($usCongress_scrubbed.birthDeath ? : "", '[^0-9-]', ""), "-")[0] as int : null,
+        death : split(replace($usCongress_scrubbed.birthDeath ? : "", '[^0-9-]', ""), "-")[1] ? split(replace($usCongress_scrubbed.birthDeath ? : "", '[^0-9-]', ""), "-")[1] as int : null,
+        worksFor: [ {//legalEntity : dict_replace($usCongressParties.id, path(), "parties"),
+                    congressNumber: (split($usCongress_scrubbed.congress, "\(") ? split($usCongress_scrubbed.congress, "\(")[0] : $usCongress_scrubbed.congress) as int},
+                    {congressNumber: (split($usCongress_scrubbed.congress, "\(") ? split($usCongress_scrubbed.congress, "\(")[0] : $usCongress_scrubbed.congress) as int,
+                   	startYear: split($usCongress_scrubbed.congress, "\(")[1] ? split(replace(split($usCongress_scrubbed.congress, "\(")[1],  '[^0-9-]', ""), "-")[0] as int : null,
+                   	endYear: split($usCongress_scrubbed.congress, "\(")[1] ? split(replace(split($usCongress_scrubbed.congress, "\(")[1],  '[^0-9-]', ""), "-")[0] as int : null,
+                   	position : $usCongress_scrubbed.position,
+                   	legalEntity : dict_replace($usCongress_scrubbed.state, path(), "states")}
+        ],
+       	//worksFor2 : dict_replace($usCongressParties.id, path(), "parties")
     },
     entity $usCongressParties identified by $usCongress_scrubbed.party with {
     	original: $usCongress_scrubbed._id,
@@ -54,7 +51,13 @@ $usCongressParties_scrubbed = scrub $usCongressParties with rules {
 };
 
 $usCongressPersons_scrubbed = scrub $usCongressPersons with rules {
-	$usCongressPersons._value.lastName: [camelCase(), illegalCharacters(", ")?: removeIllegalCharacters]
+	lastName: [camelCase(), illegalCharacters(", ")?: removeIllegalCharacters]
+};
+
+// TAG
+$usCongressPersons_scrubbed = transform $p in $usCongressPersons_scrubbed into {
+	_source: "uscongress",
+	_value: $p
 };
 
 write $usCongressPersons_scrubbed to '../resources/govwild/output/usCongress_scrubbedPersons.json';
