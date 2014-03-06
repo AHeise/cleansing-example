@@ -66,6 +66,7 @@ write $parties_unrolled to '../resources/govwild/output/testoutput/SCRUB_UNROLLE
 $politicians, $parties = map entities of $politicians_scrubbed, $tenure_scrubbed, $parties_unrolled where (($politicians_scrubbed.party == $tenure_scrubbed.id) and ($tenure_scrubbed.id == $parties_unrolled.politiciansInThisParty)) into [
 	entity $politicians identified by $politicians_scrubbed._id with {
 		originals: all($politicians_scrubbed._id),
+		_source: "freebase",
 		
 		firstName: $politicians_scrubbed.name[0],
 		middleName: $politicians_scrubbed.name[1],
@@ -146,12 +147,6 @@ $parties_clean = scrub $parties with rules {
 // ---------------------------------------------------------
 //write $politicians_clean to '../resources/govwild/output/SCRUB2_Politicians.json';
 // ---------------------------------------------------------
-
-// TAG
-$politicians_clean = transform $p in $politicians_clean into {
-	_source: "freebase",
-	_value: $p
-};
 
 write $politicians_clean to '../resources/govwild/output/Politicians.json';
 write $parties_clean to '../resources/govwild/output/PoliticalParties.json';

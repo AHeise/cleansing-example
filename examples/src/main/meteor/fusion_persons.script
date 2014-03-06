@@ -2,7 +2,7 @@ using cleansing;
 
 $persons_cluster = read from '../resources/govwild/output/cluster.json';
 
-$persons = fuse $p in $persons_cluster
+$persons = fuse $persons_cluster
 	with weights {
 		freebase: 0.7*{biography: 0.0, birth: 0.0, death: 0.0},
 		uscongress: 1.0

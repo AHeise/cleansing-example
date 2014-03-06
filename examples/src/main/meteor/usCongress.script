@@ -27,6 +27,7 @@ into [
     },
     entity $usCongressPersons identified by $usCongress_scrubbed._id with {
         id: $usCongress_scrubbed._id,
+       	_source: "uscongress",
        	originals : all($usCongress_scrubbed._id),
        	firstName: trim(split($usCongress_scrubbed.memberName, " ")[1]),
        	middleName: split($usCongress_scrubbed.memberName, " ")[2] ?: null,
@@ -59,12 +60,6 @@ $usCongressParties_scrubbed = scrub $usCongressParties with rules {
 
 $usCongressPersons_scrubbed = scrub $usCongressPersons with rules {
 	lastName: [camelCase(), illegalCharacters(", ")?: removeIllegalCharacters]
-};
-
-// TAG
-$usCongressPersons_scrubbed = transform $p in $usCongressPersons_scrubbed into {
-	_source: "uscongress",
-	_value: $p
 };
 
 write $usCongressPersons_scrubbed to '../resources/govwild/output/usCongress_scrubbedPersons.json';

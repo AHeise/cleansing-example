@@ -6,22 +6,29 @@ compareMidName = fn(midName1, midName2) { (midName1 == "" || midName2 == "")? 0.
 compareYear = fn(year1,year2) { ((year1 && year2) && (year1 == year2)) ? 1 : 0 };
 
 $usCongressPersons = read from '../resources/govwild/output/usCongress_scrubbedPersons.json';
-$usCongressPersons = sample $usCongressPersons selectEvery 1;
+$usCongressPersons = sample $usCongressPersons selectEvery 100;
 //$FreebaseAdvisors = read from '../resources/govwild/output/FreebaseAdvisors.json';
 //$FreebaseAdvisors = sample $FreebaseAdvisors selectEvery 1;
 $FreebasePoliticians = read from '../resources/govwild/output/Politicians.json';
-$FreebasePoliticians = sample $FreebasePoliticians selectEvery 1;
+$FreebasePoliticians = sample $FreebasePoliticians selectEvery 10;
 
 $cluster = link records $usCongressPersons, $FreebasePoliticians
+
+// Sorting not working
+//	sort on [
+//		[$usCongressPersons.firstName, $FreebasePoliticians.firstName],
+//		$usCongressPersons.lastName + $FreebasePoliticians.lastName,
+//		$usCongressPersons.middleName + $FreebasePoliticians.middleName
+//	]
 	where  ((
-		5*jaroWinkler($usCongressPersons._value.firstName, $FreebasePoliticians._value.firstName) +
-		5*jaroWinkler($usCongressPersons._value.lastName, $FreebasePoliticians._value.lastName) +
-		3*compareMidName($usCongressPersons._value.middleName, $FreebasePoliticians._value.middleName) +
+		5*jaroWinkler($usCongressPersons.firstName, $FreebasePoliticians.firstName) +
+		5*jaroWinkler($usCongressPersons.lastName, $FreebasePoliticians.lastName) +
+		3*compareMidName($usCongressPersons.middleName, $FreebasePoliticians.middleName) +
 		
-		compareParty($usCongressPersons._value.worksFor[0].legalEntity, $FreebasePoliticians._value.worksFor[0].legalEntity) +
-		compareYear($usCongressPersons._value.worksFor[1].startYear, $FreebasePoliticians._value.worksFor[1].startYear) +
-		compareYear($usCongressPersons._value.worksFor[1].endYear, $FreebasePoliticians._value.worksFor[1].endYear)		
-		)/16 > 0.95);
+		compareParty($usCongressPersons.worksFor[0].legalEntity, $FreebasePoliticians.worksFor[0].legalEntity) +
+		compareYear($usCongressPersons.worksFor[1].startYear, $FreebasePoliticians.worksFor[1].startYear) +
+		compareYear($usCongressPersons.worksFor[1].endYear, $FreebasePoliticians.worksFor[1].endYear)		
+		)/16 > 0.75);
 
 //		Threshold = 0.95
 //			5 FirstName --> Max(JaroWinkler, LookUp)   LookUp := sim(bill, william) = 1
