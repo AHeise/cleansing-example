@@ -1,15 +1,3 @@
-using cleansing;
-using udf;
-
-//path constants
-path = fn() { "/home/fabian/workspace/git/cleansing-example/examples/src/main/resources/govwild/scrub/" };
-
-//path = fn() { "/home/tommy-neubert/Arbeitsfläche/Hiwi/Repositories/cleansing-example/examples/src/main/resources/govwild/scrub/"};
-
-$usCongress = read from '../resources/govwild/input/OriginalUsCongress.json';
-
-$usCongress = sample $usCongress selectEvery 1;
-
 $usCongress_scrubbed = scrub $usCongress with rules {
 	_id: [required, concat_strings("_P")],
 	memberName: required,
@@ -38,7 +26,7 @@ into [
     	birth : split(replace($usCongress_scrubbed.birthDeath ? : "", '[^0-9-]', ""), "-")[0] ? split(replace($usCongress_scrubbed.birthDeath ? : "", '[^0-9-]', ""), "-")[0] as int : null,
         death : split(replace($usCongress_scrubbed.birthDeath ? : "", '[^0-9-]', ""), "-")[1] ? split(replace($usCongress_scrubbed.birthDeath ? : "", '[^0-9-]', ""), "-")[1] as int : null,
         worksFor: [ {
-        				legalEntity : dict_replace($usCongress_scrubbed.party, path(), "parties"),
+        				legalEntity : dict_replace($usCongress_scrubbed.party, path, "parties"),
                     	congressNumber: (split($usCongress_scrubbed.congress, "\(") ? split($usCongress_scrubbed.congress, "\(")[0] : $usCongress_scrubbed.congress) as int
                     },
                     {
@@ -46,21 +34,18 @@ into [
                    		startYear: split($usCongress_scrubbed.congress, "\(")[1] ? split(replace(split($usCongress_scrubbed.congress, "\(")[1],  '[^0-9-]', ""), "-")[0] as int : null,
                    		endYear: split($usCongress_scrubbed.congress, "\(")[1] ? split(replace(split($usCongress_scrubbed.congress, "\(")[1],  '[^0-9-]', ""), "-")[0] as int : null,
                    		position : $usCongress_scrubbed.position,
-                   		legalEntity : dict_replace($usCongress_scrubbed.state, path(), "states")
+                   		legalEntity : dict_replace($usCongress_scrubbed.state, path, "states")
                    	}
         ],
-       	//worksFor2 : dict_replace($usCongressParties.id, path(), "parties")
+       	//worksFor2 : dict_replace($usCongressParties.id, path, "parties")
     }
 ];
 
 $usCongressParties_scrubbed = scrub $usCongressParties with rules {
-	id:  dict_replace(path(), "parties"),
+	id:  dict_replace(path, "parties"),
 	name: notContainedIn(["Unknown"])
 };
 
 $usCongressPersons_scrubbed = scrub $usCongressPersons with rules {
 	lastName: [camelCase(), illegalCharacters(", ")?: removeIllegalCharacters]
 };
-
-write $usCongressPersons_scrubbed to '../resources/govwild/output/usCongress_scrubbedPersons.json';
-write $usCongressParties_scrubbed to '../resources/govwild/output/usCongress_scrubbedParties.json';
