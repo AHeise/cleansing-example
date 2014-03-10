@@ -12,39 +12,40 @@
 
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+		<sopremo.version>0.4.2-SNAPSHOT</sopremo.version>
 	</properties>
 
 	<dependencies>
 		<dependency>
 			<groupId>eu.stratosphere</groupId>
 			<artifactId>sopremo-base</artifactId>
-			<version>0.4.1</version>
+			<version>${sopremo.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>eu.stratosphere</groupId>
 			<artifactId>sopremo-testplan</artifactId>
-			<version>0.4.1</version>
+			<version>${sopremo.version}</version>
 			<scope>test</scope>
 		</dependency>
 		<dependency>
 			<groupId>eu.stratosphere</groupId>
 			<artifactId>sopremo-query</artifactId>
-			<version>0.4.1</version>
+			<version>${sopremo.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>eu.stratosphere</groupId>
 			<artifactId>sopremo-testserver</artifactId>
-			<version>0.4.1</version>
+			<version>${sopremo.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>eu.stratosphere</groupId>
 			<artifactId>sopremo-common</artifactId>
-			<version>0.4.1</version>
+			<version>${sopremo.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>eu.stratosphere</groupId>
 			<artifactId>sopremo-client</artifactId>
-			<version>0.4.1</version>
+			<version>${sopremo.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>eu.stratosphere</groupId>
@@ -54,12 +55,12 @@
 		<dependency>
 			<groupId>eu.stratosphere</groupId>
 			<artifactId>meteor-testing</artifactId>
-			<version>0.4.1</version>
+			<version>${sopremo.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>eu.stratosphere</groupId>
 			<artifactId>meteor-meteor</artifactId>
-			<version>0.4.1</version>
+			<version>${sopremo.version}</version>
 		</dependency>
 	</dependencies>
 	<build>

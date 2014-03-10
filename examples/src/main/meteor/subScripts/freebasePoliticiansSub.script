@@ -1,0 +1,78 @@
+//---------------------------------------------------------
+//SCRUBBING
+//---------------------------------------------------------
+$politicians_scrubbed = scrub $politicians_in with rules {
+	_id: [required, notContainedIn([""]), concat_strings("_P")],
+	id: required,
+	name: [required, normalize_name(officialTitlesPath)],
+	party: required?: default(""),
+};
+$parties_scrubbed = scrub $parties_in with rules {
+	_id: [required, notContainedIn([""])],
+	id: [required, notContainedIn([""])],
+	name: [required, remove_all_characters("'"), notContainedIn([""])],	
+	politiciansInThisParty: [required, notContainedIn([[]])],
+};
+$tenure_scrubbed = scrub $tenure_in with rules {
+	_id: [required, notContainedIn([""])],
+	id: [required, notContainedIn([""])],
+	from: [required, hasPattern("\d{4}(-\d{2}-\d{2})?")]?: default(null),
+	to: [required, hasPattern("\d{4}(-\d{2}-\d{2})?")]?: default(null)
+};
+
+$parties_unrolled = unroll $parties_scrubbed on "politiciansInThisParty";
+$politiciansJoindWithTenures = join $p in $politicians_scrubbed, $t in $tenure_scrubbed where ($p.party == $t.id) into {
+	id: $t.id,
+	p_id: $p._id,
+	p: $p,
+	t: $t
+};
+//---------------------------------------------------------
+
+$politicians, $parties = map entities of $politicians_scrubbed, $tenure_scrubbed, $parties_unrolled where (($politicians_scrubbed.party == $tenure_scrubbed.id) and ($tenure_scrubbed.id == $parties_unrolled.politiciansInThisParty)) into [
+	entity $politicians identified by $politicians_scrubbed._id with {
+		originals: all($politicians_scrubbed._id),
+		_source: "freebase",
+		
+		firstName: $politicians_scrubbed.name[0],
+		middleName: $politicians_scrubbed.name[1],
+		lastName: $politicians_scrubbed.name[2],
+		nameAddition: $politicians_scrubbed.name[3],
+		worksFor: [ 
+			{
+				legalEntity: $parties_unrolled.id,
+				congressNumber: null
+			},
+			{
+				startYear: ($tenure_scrubbed.from)? (split($tenure_scrubbed.from, "-")[0] as int) : null,
+				endYear: ($tenure_scrubbed.to)? (split($tenure_scrubbed.to, "-")[0] as int) : null,
+				congressNumber: null,
+				legalEntity: null,
+				position: null
+			}
+		],
+		// fields to align shema
+		biography: "",
+		birth: null,
+		death: null
+	},
+	entity $parties identified by $parties_unrolled.id with {
+		original: $parties_unrolled._id,
+		name: $parties_unrolled.name,
+		type: {category: "party"}
+	}
+];
+
+//---------------------------------------------------------
+//SCRUBBING
+//---------------------------------------------------------
+$politicians_clean = scrub $politicians with rules {
+	lastName: [required, notContainedIn([""])]
+};
+
+$parties_clean = scrub $parties with rules {
+	name: notContainedIn(["Unknown"]),
+	worksFor: {
+		legalEntity: required
+	}
+};

@@ -1,0 +1,23 @@
+using cleansing;
+using udf;
+
+//path constants
+path = "/home/fabian/workspace/git/cleansing-example/examples/input/scrub/";
+officialTitlesPath = path+"officialTitles.Prefix.dict";
+
+$usCongress = read from '../../../input/OriginalUsCongress.json';
+
+$politicians_in = read from '../../../input/OriginalFreebasePolitician.json';
+$parties_in = read from '../../../input/OriginalFreebasePoliticalParty.json';
+$tenure_in = read from '../../../input/OriginalFreebasePoliticalPartyTenure.json';
+
+include "src/main/meteor/subScripts/freebasePoliticiansSub.script";
+include "src/main/meteor/subScripts/uscongressPoliticiansSub.script";
+
+$usCongressPersons_scrubbed = sample $usCongressPersons_scrubbed selectEvery 100;
+$politicians_clean = sample $politicians_clean selectEvery 10;
+
+include "src/main/meteor/subScripts/recordLinkagePoliticiansSub.script";
+include "src/main/meteor/subScripts/fusionPoliticiansSub.script";
+
+write $persons to '../../../output/persons_FINAL.json';

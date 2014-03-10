@@ -25,8 +25,14 @@ public class ScriptRunner{
 	
 	@Test
 	public void testSuccessfulExecution() throws IOException {
-		File scriptFile = new File("src/main/meteor/usCongress.script");
-		final SopremoPlan plan = parseScript(scriptFile);
+		File scriptFile1 = new File("src/main/meteor/usCongress.script");
+		File scriptFile2 = new File("src/main/meteor/Freebase-Persons.script");
+		File scriptFile3 = new File("src/main/meteor/Freebase-Politicians.script");
+		File scriptFile4 = new File("src/main/meteor/record_linkage_persons.script");
+		File scriptFile5 = new File("src/main/meteor/Freebase-Company.script");
+		File scriptFile6 = new File("src/main/meteor/fusion_persons.script");
+		File scriptFile7 = new File("src/main/meteor/combined.script");
+		final SopremoPlan plan = parseScript(scriptFile7);
 
 		this.client.submit(plan, null, true);
 	}

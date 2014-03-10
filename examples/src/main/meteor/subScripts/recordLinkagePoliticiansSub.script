@@ -1,0 +1,17 @@
+compareParty = fn(party1, party2) { (lower_case(party1) == lower_case(party2) && (party1 != ""))? 1 : 0 };
+compareMidName = fn(midName1, midName2) { (midName1 == "" || midName2 == "")? 0.8 : jaroWinkler(midName1,midName2)};
+compareYear = fn(year1,year2) { ((year1 && year2) && (year1 == year2)) ? 1 : 0 };
+
+$pairs = link records $us in $usCongressPersons_scrubbed, $fb in $politicians_clean
+//	partition on [
+//	              {$us.firstName : $fb.firstName}
+//	]
+	where  ((
+		5*jaroWinkler($us.firstName, $fb.firstName) +
+		5*jaroWinkler($us.lastName, $fb.lastName) +
+		3*compareMidName($us.middleName, $fb.middleName) +
+		
+		compareParty($us.worksFor[0].legalEntity, $fb.worksFor[0].legalEntity) +
+		compareYear($us.worksFor[1].startYear, $fb.worksFor[1].startYear) +
+		compareYear($us.worksFor[1].endYear, $fb.worksFor[1].endYear)		
+		)/16 > 0.75);

@@ -1,48 +1,66 @@
 using cleansing;
 using udf;
 
+//path constants
+path = fn() { "/home/fabian/workspace/git/cleansing-example/examples/src/main/resources/govwild/scrub/" };
+
+//path = fn() { "/home/tommy-neubert/Arbeitsfläche/Hiwi/Repositories/cleansing-example/examples/src/main/resources/govwild/scrub/"};
+
 $usCongress = read from '../resources/govwild/input/OriginalUsCongress.json';
+
+$usCongress = sample $usCongress selectEvery 1;
 
 $usCongress_scrubbed = scrub $usCongress with rules {
 	_id: [required, concat_strings("_P")],
 	memberName: required,
 	biography: required,
-	party: required
+	party: required,
+    congress:required
 };
 
-$usCongressPersons, $usCongressParties  = map entities of $usCongress_scrubbed
+$usCongressParties, $usCongressPersons = map entities of $usCongress_scrubbed
 into [
-    entity $usCongressPersons identified by $usCongress_scrubbed._id with {
-        id: $usCongress_scrubbed._id,
-        originals : [$usCongress_scrubbed._id],
-        firstName: trim(split($usCongress_scrubbed.memberName, " ")[1]),
-        middleName: split($usCongress_scrubbed.memberName, " ")[2] ?: null,
-        lastName: split($usCongress_scrubbed.memberName, ",")[0],
-        nameAddition: remove_all_characters(split($usCongress_scrubbed.memberName, " ")[3] ?:"", "()") ?: null,
-        biography: $usCongress_scrubbed.biography,
-        birth : split(replace($usCongress_scrubbed.birthDeath ? : "", '[^0-9-]', ""), "-")[0] ? split(replace($usCongress_scrubbed.birthDeath ? : "", '[^0-9-]', ""), "-")[0] as int : null,
-        death : split(replace($usCongress_scrubbed.birthDeath ? : "", '[^0-9-]', ""), "-")[1] ? split(replace($usCongress_scrubbed.birthDeath ? : "", '[^0-9-]', ""), "-")[1] as int : null,
-        //worksFor: [ {legalEntity : $usCongress_scrubbed.party,
-        //             congressNumber: split($usCongress_scrubbed.congress, "\(") ? split($usCongress_scrubbed.congress, "\(")[0] : $usCongress_scrubbed.congress as int},
-        //             {congressNumber: split($usCongress_scrubbed.congress, "\(") ? split($usCongress_scrubbed.congress, "\(")[0] : $usCongress_scrubbed.congress as int,
-        //             legalEntity : $usCongress_scrubbed.party,
-        //             startYear: split($usCongress_scrubbed.congress, "\(")[1] ? split(replace(split($usCongress_scrubbed.congress, "\(")[1],  '[^0-9-]', ""), "-")[0] as int : null,
-        //             endYear: split($usCongress_scrubbed.congress, "\(")[1] ? split(replace(split($usCongress_scrubbed.congress, "\(")[1],  '[^0-9-]', ""), "-")[0] as int : null,
-        //             position : $usCongress_scrubbed.position,
-        //             legalEntity : dict_replace($usCongress_scrubbed.state, "/home/fabian/workspace/git/hpi/GovWildMeteor/src/main/resources/govwild/scrub/", "states")}
-        // ]
-    },
     entity $usCongressParties identified by $usCongress_scrubbed.party with {
     	original: $usCongress_scrubbed._id,
     	name: $usCongress_scrubbed.party,
     	type: {category: "party"}
+    },
+    entity $usCongressPersons identified by $usCongress_scrubbed._id with {
+        id: $usCongress_scrubbed._id,
+       	_source: "uscongress",
+       	originals : all($usCongress_scrubbed._id),
+       	firstName: trim(split($usCongress_scrubbed.memberName, " ")[1]),
+       	middleName: split($usCongress_scrubbed.memberName, " ")[2] ?: null,
+       	lastName: split($usCongress_scrubbed.memberName, ",")[0],
+      	//path constants
+      	nameAddition: remove_all_characters(split($usCongress_scrubbed.memberName, " ")[3] ?:"", "()") ?: null,
+        biography: $usCongress_scrubbed.biography,
+    	birth : split(replace($usCongress_scrubbed.birthDeath ? : "", '[^0-9-]', ""), "-")[0] ? split(replace($usCongress_scrubbed.birthDeath ? : "", '[^0-9-]', ""), "-")[0] as int : null,
+        death : split(replace($usCongress_scrubbed.birthDeath ? : "", '[^0-9-]', ""), "-")[1] ? split(replace($usCongress_scrubbed.birthDeath ? : "", '[^0-9-]', ""), "-")[1] as int : null,
+        worksFor: [ {
+        				legalEntity : dict_replace($usCongress_scrubbed.party, path(), "parties"),
+                    	congressNumber: (split($usCongress_scrubbed.congress, "\(") ? split($usCongress_scrubbed.congress, "\(")[0] : $usCongress_scrubbed.congress) as int
+                    },
+                    {
+                    	congressNumber: (split($usCongress_scrubbed.congress, "\(") ? split($usCongress_scrubbed.congress, "\(")[0] : $usCongress_scrubbed.congress) as int,
+                   		startYear: split($usCongress_scrubbed.congress, "\(")[1] ? split(replace(split($usCongress_scrubbed.congress, "\(")[1],  '[^0-9-]', ""), "-")[0] as int : null,
+                   		endYear: split($usCongress_scrubbed.congress, "\(")[1] ? split(replace(split($usCongress_scrubbed.congress, "\(")[1],  '[^0-9-]', ""), "-")[0] as int : null,
+                   		position : $usCongress_scrubbed.position,
+                   		legalEntity : dict_replace($usCongress_scrubbed.state, path(), "states")
+                   	}
+        ],
+       	//worksFor2 : dict_replace($usCongressParties.id, path(), "parties")
     }
 ];
 
 $usCongressParties_scrubbed = scrub $usCongressParties with rules {
-	id: dict_replace("/home/fabian/workspace/git/hpi/GovWildMeteor/src/main/resources/govwild/scrub/", "parties"),
+	id:  dict_replace(path(), "parties"),
 	name: notContainedIn(["Unknown"])
 };
 
-write $usCongressPersons to '../resources/govwild/output/usCongress_scrubbedPersons.json';
+$usCongressPersons_scrubbed = scrub $usCongressPersons with rules {
+	lastName: [camelCase(), illegalCharacters(", ")?: removeIllegalCharacters]
+};
+
+write $usCongressPersons_scrubbed to '../resources/govwild/output/usCongress_scrubbedPersons.json';
 write $usCongressParties_scrubbed to '../resources/govwild/output/usCongress_scrubbedParties.json';

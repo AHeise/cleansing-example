@@ -1,39 +1,152 @@
 using cleansing;
-using govwild;
+using udf;
+
+//path constants
+path = "/home/fabian/workspace/git/cleansing-example/examples/src/main/resources/govwild/scrub/";
+officialTitlesPath = "/home/fabian/workspace/git/cleansing-example/examples/src/main/resources/govwild/scrub/officialTitles.Prefix.dict";
+
+//path = "/home/tommy-neubert/Arbeitsfläche/Hiwi/Repositories/cleansing-example/examples/src/main/resources/govwild/scrub/";
+//officialTitlesPath = "/home/tommy-neubert/Arbeitsfläche/Hiwi/Repositories/cleansing-example/examples/src/main/resources/govwild/scrub/officialTitles.Prefix.dict";
 
 $politicians_in = read from '../resources/govwild/input/OriginalFreebasePolitician.json';
+$parties_in = read from '../resources/govwild/input/OriginalFreebasePoliticalParty.json';
+$tenure_in = read from '../resources/govwild/input/OriginalFreebasePoliticalPartyTenure.json';
 
-
-// SCRUBBING
+//---------------------------------------------------------
+//SCRUBBING
+//---------------------------------------------------------
 $politicians_scrubbed = scrub $politicians_in with rules {
-	_id: [required, concat_strings("_P")],
+	_id: [required, notContainedIn([""]), concat_strings("_P")],
 	id: required,
-	name: [required, normalize_name("../resources/govwild/scrub/officialTitles.Prefix.dict")],
+	name: [required, normalize_name(officialTitlesPath())],
 	party: required?: default(""),
-	
-	governmentPositionsHeld: required?: default([]),
-	electionCampaigns: required?: default([]),
-	legislativeCommitteesServedOn: required?: default([])
 };
-write $politicians_scrubbed to '../resources/govwild/output/SCRUB_Politicians.json';
+$parties_scrubbed = scrub $parties_in with rules {
+	_id: [required, notContainedIn([""])],
+	id: [required, notContainedIn([""])],
+	name: [required, remove_all_characters("'"), notContainedIn([""])],	
+	politiciansInThisParty: [required, notContainedIn([[]])],
+};
+$tenure_scrubbed = scrub $tenure_in with rules {
+	_id: [required, notContainedIn([""])],
+	id: [required, notContainedIn([""])],
+	from: [required, hasPattern("\d{4}(-\d{2}-\d{2})?")]?: default(null),
+	to: [required, hasPattern("\d{4}(-\d{2}-\d{2})?")]?: default(null)
+};
+//---------------------------------------------------------
+//write $politicians_scrubbed to '../resources/govwild/output/testoutput/SCRUB_Politicians.json';
+//write $parties_scrubbed to '../resources/govwild/output/testoutput/SCRUB_Parties.json';
+//write $tenure_scrubbed to '../resources/govwild/output/testoutput/SCRUB_Tenures.json';
+//---------------------------------------------------------
 
+//---------------------------------------------------------
+//ENTITY EXTRACTION
+//TODO:
+//1. implement the array access alternative in entity mapping
+//2. implement the possibility to allow the whole input object as value
+//3. throw understandable exceptions
+//4. extend join condition to allow e.g. join record x and y where x.id is in y.ids (ids = array value)
+//---------------------------------------------------------
+//WORKAROUNDS
+$parties_unrolled = unroll $parties_scrubbed on "politiciansInThisParty";
+$politiciansJoindWithTenures = join $p in $politicians_scrubbed, $t in $tenure_scrubbed where ($p.party == $t.id) into {
+	id: $t.id,
+	p_id: $p._id,
+	p: $p,
+	t: $t
+};
+write $politiciansJoindWithTenures to '../resources/govwild/output/testoutput/SCRUB_PRE_EE.json';
+write $parties_unrolled to '../resources/govwild/output/testoutput/SCRUB_UNROLLED_PARTY.json';
+//---------------------------------------------------------
 
-// ENTITY EXTRACTION
-$politicians = map entities of $politicians_scrubbed into [
-	entity $politicians identified by $politicians_scrubbed.id with {
-		_id: $politicians_scrubbed._id,
-		party: $politicians_scrubbed.party,
+//TODO: Fix Joincondition to allow following example + add possibility to allow field: constant_value
+$politicians, $parties = map entities of $politicians_scrubbed, $tenure_scrubbed, $parties_unrolled where (($politicians_scrubbed.party == $tenure_scrubbed.id) and ($tenure_scrubbed.id == $parties_unrolled.politiciansInThisParty)) into [
+	entity $politicians identified by $politicians_scrubbed._id with {
+		originals: all($politicians_scrubbed._id),
+		_source: "freebase",
 		
-		//firstName: $politicians_scrubbed.name[0],
-		//middleName: $politicians_scrubbed.name[1],
-		//lastName: $politicians_scrubbed.name[2],
-		//nameAddition: $politicians_scrubbed.name[3],
-		
-		fullName: $politicians_scrubbed.name,
-		
-		original: $politicians_scrubbed.id
+		firstName: $politicians_scrubbed.name[0],
+		middleName: $politicians_scrubbed.name[1],
+		lastName: $politicians_scrubbed.name[2],
+		nameAddition: $politicians_scrubbed.name[3],
+		worksFor: [ 
+			{
+				legalEntity: $parties_unrolled.id,
+				congressNumber: null
+			},
+			{
+				startYear: ($tenure_scrubbed.from)? (split($tenure_scrubbed.from, "-")[0] as int) : null,
+				endYear: ($tenure_scrubbed.to)? (split($tenure_scrubbed.to, "-")[0] as int) : null,
+				congressNumber: null,
+				legalEntity: null,
+				position: null
+			}
+		],
+		// fields to align shema
+		biography: "",
+		birth: null,
+		death: null
+	},
+	entity $parties identified by $parties_unrolled.id with {
+		original: $parties_unrolled._id,
+		name: $parties_unrolled.name,
+		type: {category: "party"}
 	}
 ];
-write $politicians to '../resources/govwild/output/EXTRACT_Politicians.json';
+//$politicians, $parties = map entities of $p in $politiciansJoindWithTenures, $pa in $parties_unrolled where ($p.id[1:1] == $pa.politiciansInThisParty[1:1] ) into [
+//	entity $politicians identified by $p.p_id with {
+//		originals: all($p.p_id),
+//		
+//		firstName: $p.p.name[0],
+//		middleName: $p.p.name[1],
+//		lastName: $p.p.name[2],
+//		nameAddition: $p.p.name[3],
+//		
+//		worksFor: [
+//			 {
+//				legalEntity: $pa.id,
+//				congressNumber: null
+//			},
+//			{
+//				startYear: ($p.t.from)? (split($p.t.from, "-")[0] as int) : null,
+//				endYear: ($p.t.to)? (split($p.t.to, "-")[0] as int) : null,
+//				congressNumber: null,
+//				legalEntity: null
+//			}
+//		],
+//			
+//		biography: "",
+//		birth: null,
+//		death: null,
+//		position: null
+//	},
+//	entity $parties identified by $pa.id with {
+//		original: $pa._id,
+//		name: $pa.name,
+//		type: {category: "party"}
+//	}
+//];
+//---------------------------------------------------------
+write $politicians to '../resources/govwild/output/testoutput/EXTRACT_Politicians.json';
+//write $parties to '../resources/govwild/output/EXTRACT_Parties.json';
+//---------------------------------------------------------
 
-// write $politicians_scrubbed to '../../resources/govwild/output/Politicians.json';
+//---------------------------------------------------------
+//SCRUBBING
+//---------------------------------------------------------
+$politicians_clean = scrub $politicians with rules {
+	lastName: [required, notContainedIn([""])]
+};
+
+$parties_clean = scrub $parties with rules {
+	name: notContainedIn(["Unknown"]),
+	worksFor: {
+		legalEntity: required
+	}
+};
+//---------------------------------------------------------
+//write $politicians_clean to '../resources/govwild/output/SCRUB2_Politicians.json';
+//---------------------------------------------------------
+
+write $politicians_clean to '../resources/govwild/output/Politicians.json';
+write $parties_clean to '../resources/govwild/output/PoliticalParties.json';
