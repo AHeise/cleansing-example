@@ -3,9 +3,9 @@ compareMidName = fn(midName1, midName2) { (midName1 == "" || midName2 == "")? 0.
 compareYear = fn(year1,year2) { ((year1 && year2) && (year1 == year2)) ? 1 : 0 };
 
 $pairs = link records $us in $usCongressPersons_scrubbed, $fb in $politicians_clean
-	partition on [
-	              {$us.firstName : $fb.firstName}
-	]
+//	partition on [
+//	              {$us.firstName : $fb.firstName}
+//	]
 	where  ((
 		5*jaroWinkler($us.firstName, $fb.firstName) +
 		5*jaroWinkler($us.lastName, $fb.lastName) +

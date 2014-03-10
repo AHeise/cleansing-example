@@ -2,14 +2,14 @@ using cleansing;
 using udf;
 
 //path constants
-path = "/home/fabian/workspace/git/cleansing-example/examples/src/main/resources/govwild/scrub/";
+path = "/home/fabian/workspace/git/cleansing-example/examples/input/scrub/";
 officialTitlesPath = path+"officialTitles.Prefix.dict";
 
-$usCongress = read from '../resources/govwild/input/OriginalUsCongress.json';
+$usCongress = read from '../../../input/OriginalUsCongress.json';
 
-$politicians_in = read from '../resources/govwild/input/OriginalFreebasePolitician.json';
-$parties_in = read from '../resources/govwild/input/OriginalFreebasePoliticalParty.json';
-$tenure_in = read from '../resources/govwild/input/OriginalFreebasePoliticalPartyTenure.json';
+$politicians_in = read from '../../../input/OriginalFreebasePolitician.json';
+$parties_in = read from '../../../input/OriginalFreebasePoliticalParty.json';
+$tenure_in = read from '../../../input/OriginalFreebasePoliticalPartyTenure.json';
 
 include "src/main/meteor/subScripts/freebasePoliticiansSub.script";
 include "src/main/meteor/subScripts/uscongressPoliticiansSub.script";
@@ -20,4 +20,4 @@ $politicians_clean = sample $politicians_clean selectEvery 10;
 include "src/main/meteor/subScripts/recordLinkagePoliticiansSub.script";
 include "src/main/meteor/subScripts/fusionPoliticiansSub.script";
 
-write $persons to '../resources/govwild/output/persons_FINAL.json';
+write $persons to '../../../output/persons_FINAL.json';
