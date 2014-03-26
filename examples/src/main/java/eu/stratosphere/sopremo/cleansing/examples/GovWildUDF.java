@@ -22,7 +22,12 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
+import eu.stratosphere.sopremo.function.SopremoFunction0;
+import eu.stratosphere.sopremo.function.SopremoFunction1;
 import eu.stratosphere.sopremo.function.SopremoFunction2;
 import eu.stratosphere.sopremo.function.SopremoFunction3;
 import eu.stratosphere.sopremo.operator.Name;
@@ -32,6 +37,7 @@ import eu.stratosphere.sopremo.type.IArrayNode;
 import eu.stratosphere.sopremo.type.IJsonNode;
 import eu.stratosphere.sopremo.type.IObjectNode;
 import eu.stratosphere.sopremo.type.IntNode;
+import eu.stratosphere.sopremo.type.LongNode;
 import eu.stratosphere.sopremo.type.NullNode;
 import eu.stratosphere.sopremo.type.TextNode;
 
@@ -145,7 +151,7 @@ public class GovWildUDF implements BuiltinProvider {
 			return array.get(index.getIntValue());
 		}
 	}
-	
+
 	@Name(noun = "getValue")
 	public static class GET_VALUE extends
 			SopremoFunction2<IObjectNode, TextNode> {
@@ -420,4 +426,55 @@ public class GovWildUDF implements BuiltinProvider {
 		}
 	};
 
+	@Name(noun = "parsePhoneNumbers")
+	public static class PARSE_PHONE_NUMBERS extends SopremoFunction1<TextNode> {
+
+		@Override
+		protected IJsonNode call(TextNode valueNode) {
+			Pattern numberGroup3 = Pattern.compile("\\d{3}");
+			IArrayNode<TextNode> result = new ArrayNode<TextNode>();
+			String value = valueNode.toString();
+
+			boolean repeat = true;
+			String number = "";
+			int groupNr = 0;
+
+			while (repeat) {
+				Matcher m3 = numberGroup3.matcher(value);
+				if (m3.find()) {
+					if ("0123456789".contains(String.valueOf(value.charAt(m3
+							.end())))) {
+						number = number + " "
+								+ value.substring(m3.start(), m3.start() + 4);
+					} else {
+						number = number + " "
+								+ value.substring(m3.start(), m3.start() + 3);
+					}
+					value = value.substring(m3.end());
+				} else {
+					repeat = false;
+				}
+				if (groupNr == 2) {
+					groupNr = -1;
+					number = number.trim();
+					String[] numberSplit = number.split(" ");
+					result.add(TextNode.valueOf(numberSplit[0] + "-"
+							+ numberSplit[1] + "-" + numberSplit[2]));
+					number = "";
+				}
+				groupNr++;
+			}
+
+			return result;
+		}
+	};
+
+	@Name(noun = "generateId")
+	public static class GENERATE_ID extends SopremoFunction0 {
+
+		@Override
+		protected IJsonNode call() {
+			return TextNode.valueOf(UUID.randomUUID().toString());
+		}
+	};
 }
