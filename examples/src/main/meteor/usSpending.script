@@ -1,0 +1,37 @@
+using cleansing;
+using udf;
+
+//path constants
+path = fn() { "/home/fabian/workspace/git/cleansing-example/examples/src/main/resources/govwild/scrub/" };
+
+//path = fn() { "/home/tommy-neubert/Arbeitsfläche/Hiwi/Repositories/cleansing-example/examples/src/main/resources/govwild/scrub/"};
+
+$usSpending = read from '../../../input/usSpendingSample.csv';
+
+$usSpending_scrubbed = scrub $usSpending with rules {
+	unique_transaction_id: required,
+	contractingofficeagencyid: required,
+	obligatedamount: required,
+	fiscal_year: required,
+	placeofperformancecountrycode: required,
+	placeofperformancecongressionaldistrict: required,
+	pop_state_code: required,
+	placeofperformancezipcode: required,
+	ultimatecompletiondate: required,
+	descriptionofcontractrequirement: required,
+	idvpiid: required,
+	piid: required
+};
+
+$funds, $legalEntities = map entities of $usSpending_scrubbed
+into [
+    entity $funds identified by $usSpending_scrubbed.unique_transaction_id with {
+    	vendor: $legalEntities.id
+    },
+    entity $legalEntities identified by concat_strings($usSpending_scrubbed.vendorname, "_LE") with {
+    	name: $usSpending_scrubbed.vendorname
+    }
+];
+
+write $funds to '../../../output/usSpendingFunds.json';
+write $legalEntities to '../../../output/usSpendingLegalEntities.json';
