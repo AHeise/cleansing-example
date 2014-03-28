@@ -1,0 +1,22 @@
+compareMidNameEM = fn(midName1, midName2) { (midName1 == "" || midName2 == "")? 0.8 : jaroWinkler(midName1,midName2) };
+
+$em_test = transform $em_persons into {
+	$em_persons.firstName,
+	$em_persons.lastName,
+	$em_persons.middleName
+};
+$us_test = transform $usCongressPersons_scrubbed into {
+	$usCongressPersons_scrubbed.firstName,
+	$usCongressPersons_scrubbed.lastName,
+	$usCongressPersons_scrubbed.middleName
+};
+
+write $em_test to '../../../output/em_names.json';
+write $us_test to '../../../output/us_names.json';
+
+$personsEarmarksCongress = link records $us in $usCongressPersons_scrubbed, $em in $em_persons
+	where  ((
+		5*jaroWinkler($us.firstName, $em.firstName) +
+		5*jaroWinkler($us.lastName, $em.lastName) +
+		3*compareMidNameEM($us.middleName, $em.middleName)	
+		)/13 > 0.8);

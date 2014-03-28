@@ -1,0 +1,23 @@
+$fusedEC = fuse $personsEarmarksCongress
+	with weights {
+		earmarks: 0.9,
+		uscongress: 1.0
+	}
+with resolutions {
+	originals: mergeDistinct,
+	
+	firstName: mostFrequent,
+	middleName: mostFrequent,
+	lastName: mostFrequent,
+	nameAddition: mergeDistinct,
+	
+	worksFor: mostFrequent,
+	biography: mostFrequent,
+	birth: mostFrequent,
+	death: mostFrequent
+};
+
+$fusedEC = transform $fusedEC into {
+	$fusedEC.*,
+	_source: "fusion1"
+};
