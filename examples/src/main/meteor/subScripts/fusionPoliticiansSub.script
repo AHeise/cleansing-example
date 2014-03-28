@@ -1,7 +1,7 @@
-$persons = fuse $pairs
+$persons_final = fuse $pairs
 	with weights {
-		freebase: 0.7*{biography: 0.0, birth: 0.0, death: 0.0},
-		uscongress: 1.0
+		freebase: 0.9*{biography: 0.0, birth: 0.0, death: 0.0},
+		fusion1: 1.0
 	}
 with resolutions {
 	originals: mergeDistinct,
@@ -14,5 +14,5 @@ with resolutions {
 	worksFor: mostFrequent,
 	biography: mostFrequent,
 	birth: mostFrequent,
-	death: mostFrequent,
+	death: mostFrequent
 };

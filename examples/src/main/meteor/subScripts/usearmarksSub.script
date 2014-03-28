@@ -1,4 +1,4 @@
-appendStreet = fn(street1, street2) { (street2 == null || street2 == "")? concat_strings(street1) : concat_strings(street1, ", ", street2) };
+appendStreet = fn(street1, street2) { (street2 == "")? concat_strings(street1) : concat_strings(street1, ", ", street2) };
 
 $em_input = transform $em_input into {
 	_id: generateId(),
@@ -14,8 +14,8 @@ $em_scrubbed_for_person = scrub $em_input with rules {
 $em_scrubbed_for_le = scrub $em_input with rules {
 	EARMARK_ID: required,
 	RECIPIENT: [required, notContainedIn(["Not yet available", ""])],
-	RECIPIENT_STREET_1: [required, notContainedIn([null])]?:default(null),
-	RECIPIENT_STREET_2: [required, notContainedIn([null])]?:default(null),
+	RECIPIENT_STREET_1: [required, notContainedIn([null])]?:default(""),
+	RECIPIENT_STREET_2: [required, notContainedIn([null])]?:default(""),
 	RECIPIENT_CITY: [required,notContainedIn([""])]?:default(null),
 	RECIPIENT_STATE: [required,notContainedIn([""])]?:default(null),
 	RECIPIENT_ZIPCODE: [required,notContainedIn([""])]?:default(null),

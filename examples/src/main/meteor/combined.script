@@ -3,6 +3,8 @@ using udf;
 
 //path constants
 path = "/home/fabian/Development/Stratosphere/cleansing-example/examples/input/scrub";
+//path = "/home/tommy-neubert/Arbeitsfläche/Hiwi/Repositories/cleansing-example/examples/input/scrub/";
+
 officialTitlesPath = path+"officialTitles.Prefix.dict";
 
 //22.9 MB, records: 95253, columns: 8
@@ -22,12 +24,18 @@ $em_input = read from '../../../input/usearmarks2008.csv';
 
 include "src/main/meteor/subScripts/freebasePoliticiansSub.script";
 include "src/main/meteor/subScripts/uscongressPoliticiansSub.script";
-include "src/main/meteor/subScripts/usearmarksSub.script"
+include "src/main/meteor/subScripts/usearmarksSub.script";
+
+write $em_funds to '../../../output/funds_earmark.json';
+write $em_legalEntities to '../../../output/legalEntities_earmark.json';
 
 $usCongressPersons_scrubbed = sample $usCongressPersons_scrubbed selectEvery 100;
 $politicians_clean = sample $politicians_clean selectEvery 10;
 
+include "src/main/meteor/subScripts/recordLinkagePersonsEarmarkCongressSub.script";
+include "src/main/meteor/subScripts/fusionPersonsEarmarkCongressSub.script";
+
 include "src/main/meteor/subScripts/recordLinkagePoliticiansSub.script";
 include "src/main/meteor/subScripts/fusionPoliticiansSub.script";
 
-write $persons to '../../../output/persons_FINAL.json';
+write $persons_final to '../../../output/persons_FINAL.json';

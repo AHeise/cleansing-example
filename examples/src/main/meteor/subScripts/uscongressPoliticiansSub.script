@@ -1,3 +1,11 @@
+using cleansing;
+using udf;
+
+path = "/home/tommy-neubert/Arbeitsfläche/Hiwi/Repositories/cleansing-example/examples/input/scrub/";
+officialTitlesPath = path+"officialTitles.Prefix.dict";
+
+$usCongress = read from '../../../../input/OriginalUsCongress.json';
+
 $usCongress_scrubbed = scrub $usCongress with rules {
 	_id: [required, concat_strings("_P")],
 	memberName: required,
@@ -49,3 +57,6 @@ $usCongressParties_scrubbed = scrub $usCongressParties with rules {
 $usCongressPersons_scrubbed = scrub $usCongressPersons with rules {
 	lastName: [camelCase(), illegalCharacters(", ")?: removeIllegalCharacters]
 };
+
+write $usCongressPersons_scrubbed to '../../../output/usCongress_persons_TEST.json';
+write $usCongressParties_scrubbed to '../../../output/usCongress_party_TEST.json';
