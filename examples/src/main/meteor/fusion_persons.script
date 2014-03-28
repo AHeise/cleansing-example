@@ -18,7 +18,7 @@ with resolutions {
 	worksFor: mostFrequent,
 	biography: mostFrequent,
 	birth: mostFrequent,
-	death: mostFrequent,
+	death: mostFrequent
 };
 
 write $persons to '../resources/govwild/output/persons_FINAL.json';
