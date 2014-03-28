@@ -2,7 +2,7 @@ using cleansing;
 using udf;
 
 //path constants
-path = fn() { "/home/fabian/workspace/git/cleansing-example/examples/src/main/resources/govwild/scrub/" };
+path = fn() { "/home/fabian/Development/Stratosphere/cleansing-example/examples/input/scrub" };
 
 //path = fn() { "/home/tommy-neubert/Arbeitsfläche/Hiwi/Repositories/cleansing-example/examples/src/main/resources/govwild/scrub/"};
 
@@ -28,7 +28,7 @@ into [
     entity $funds identified by $usSpending_scrubbed.unique_transaction_id with {
     	vendor: $legalEntities.id
     },
-    entity $legalEntities identified by concat_strings($usSpending_scrubbed.vendorname, "_LE") with {
+    entity $legalEntities identified by $usSpending_scrubbed.vendorname with {
     	name: $usSpending_scrubbed.vendorname
     }
 ];

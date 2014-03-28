@@ -2,7 +2,7 @@ using cleansing;
 using udf;
 
 //path constants
-path = "/home/fabian/workspace/git/cleansing-example/examples/input/scrub/";
+path = "/home/fabian/Development/Stratosphere/cleansing-example/examples/input/scrub";
 officialTitlesPath = path+"officialTitles.Prefix.dict";
 
 $usCongress = read from '../../../input/OriginalUsCongress.json';

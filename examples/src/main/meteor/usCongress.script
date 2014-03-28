@@ -2,7 +2,7 @@ using cleansing;
 using udf;
 
 //path constants
-path = fn() { "/home/fabian/workspace/git/cleansing-example/examples/src/main/resources/govwild/scrub/" };
+path = fn() { "/home/fabian/Development/Stratosphere/cleansing-example/examples/input/scrub" };
 
 //path = fn() { "/home/tommy-neubert/Arbeitsfläche/Hiwi/Repositories/cleansing-example/examples/src/main/resources/govwild/scrub/"};
 
