@@ -2,11 +2,11 @@ using cleansing;
 using udf;
 
 //path constants
-path = fn() { "/home/fabian/Development/Stratosphere/cleansing-example/examples/input/scrub" };
+path = fn() { "/home/fabian/Development/Stratosphere/cleansing-example/examples/input/scrub/" };
 
 //path = fn() { "/home/tommy-neubert/Arbeitsfläche/Hiwi/Repositories/cleansing-example/examples/src/main/resources/govwild/scrub/"};
 
-$usCongress = read from '../resources/govwild/input/OriginalUsCongress.json';
+$usCongress = read from 'file:///home/fabian/Development/Stratosphere/cleansing-example/examples/input/OriginalUsCongress.json';
 
 $usCongress = sample $usCongress selectEvery 1;
 
@@ -62,5 +62,5 @@ $usCongressPersons_scrubbed = scrub $usCongressPersons with rules {
 	lastName: [camelCase(), illegalCharacters(", ")?: removeIllegalCharacters]
 };
 
-write $usCongressPersons_scrubbed to '../resources/govwild/output/usCongress_scrubbedPersons.json';
-write $usCongressParties_scrubbed to '../resources/govwild/output/usCongress_scrubbedParties.json';
+write $usCongressPersons_scrubbed to 'file:///home/fabian/Development/Stratosphere/cleansing-example/examples/output/usCongress_scrubbedPersons.json';
+write $usCongressParties_scrubbed to 'file:///home/fabian/Development/Stratosphere/cleansing-example/examples/output/usCongress_scrubbedParties.json';

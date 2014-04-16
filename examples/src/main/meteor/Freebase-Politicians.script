@@ -2,15 +2,12 @@ using cleansing;
 using udf;
 
 //path constants
-path = "/home/fabian/workspace/git/cleansing-example/examples/src/main/resources/govwild/scrub/";
-officialTitlesPath = "/home/fabian/workspace/git/cleansing-example/examples/src/main/resources/govwild/scrub/officialTitles.Prefix.dict";
+path = "/home/fabian/Development/Stratosphere/cleansing-example/examples/input/scrub/";
+officialTitlesPath = path+"officialTitles.Prefix.dict";
 
-//path = "/home/tommy-neubert/Arbeitsfläche/Hiwi/Repositories/cleansing-example/examples/src/main/resources/govwild/scrub/";
-//officialTitlesPath = "/home/tommy-neubert/Arbeitsfläche/Hiwi/Repositories/cleansing-example/examples/src/main/resources/govwild/scrub/officialTitles.Prefix.dict";
-
-$politicians_in = read from '../resources/govwild/input/OriginalFreebasePolitician.json';
-$parties_in = read from '../resources/govwild/input/OriginalFreebasePoliticalParty.json';
-$tenure_in = read from '../resources/govwild/input/OriginalFreebasePoliticalPartyTenure.json';
+$politicians_in = read from 'file:///home/fabian/Development/Stratosphere/cleansing-example/examples/input/OriginalFreebasePolitician.json';
+$parties_in = read from 'file:///home/fabian/Development/Stratosphere/cleansing-example/examples/input/OriginalFreebasePoliticalParty.json';
+$tenure_in = read from 'file:///home/fabian/Development/Stratosphere/cleansing-example/examples/input/OriginalFreebasePoliticalPartyTenure.json';
 
 //---------------------------------------------------------
 //SCRUBBING
@@ -18,7 +15,7 @@ $tenure_in = read from '../resources/govwild/input/OriginalFreebasePoliticalPart
 $politicians_scrubbed = scrub $politicians_in with rules {
 	_id: [required, notContainedIn([""]), concat_strings("_P")],
 	id: required,
-	name: [required, normalize_name(officialTitlesPath())],
+	name: [required, normalize_name(officialTitlesPath)],
 	party: required?: default(""),
 };
 $parties_scrubbed = scrub $parties_in with rules {
@@ -33,6 +30,7 @@ $tenure_scrubbed = scrub $tenure_in with rules {
 	from: [required, hasPattern("\d{4}(-\d{2}-\d{2})?")]?: default(null),
 	to: [required, hasPattern("\d{4}(-\d{2}-\d{2})?")]?: default(null)
 };
+
 //---------------------------------------------------------
 //write $politicians_scrubbed to '../resources/govwild/output/testoutput/SCRUB_Politicians.json';
 //write $parties_scrubbed to '../resources/govwild/output/testoutput/SCRUB_Parties.json';
@@ -42,7 +40,6 @@ $tenure_scrubbed = scrub $tenure_in with rules {
 //---------------------------------------------------------
 //ENTITY EXTRACTION
 //TODO:
-//1. implement the array access alternative in entity mapping
 //2. implement the possibility to allow the whole input object as value
 //3. throw understandable exceptions
 //4. extend join condition to allow e.g. join record x and y where x.id is in y.ids (ids = array value)
@@ -139,14 +136,11 @@ $politicians_clean = scrub $politicians with rules {
 };
 
 $parties_clean = scrub $parties with rules {
-	name: notContainedIn(["Unknown"]),
-	worksFor: {
-		legalEntity: required
-	}
+	name: [required, notContainedIn(["Unknown"])],
 };
 //---------------------------------------------------------
 //write $politicians_clean to '../resources/govwild/output/SCRUB2_Politicians.json';
 //---------------------------------------------------------
 
-write $politicians_clean to '../resources/govwild/output/Politicians.json';
-write $parties_clean to '../resources/govwild/output/PoliticalParties.json';
+write $politicians_clean to 'file:///home/fabian/Development/Stratosphere/cleansing-example/examples/output/Politicians.json';
+write $parties_clean to 'file:///home/fabian/Development/Stratosphere/cleansing-example/examples/output/PoliticalParties.json';
