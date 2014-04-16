@@ -29,6 +29,7 @@ include "src/main/meteor/subScripts/usearmarksSub.script";
 write $em_funds to '../../../output/funds_earmark.json';
 write $em_legalEntities to '../../../output/legalEntities_earmark.json';
 
+$em_persons = sample $em_persons selectEvery 10;
 $usCongressPersons_scrubbed = sample $usCongressPersons_scrubbed selectEvery 100;
 $politicians_clean = sample $politicians_clean selectEvery 10;
 

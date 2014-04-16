@@ -6,6 +6,7 @@ $em_input = transform $em_input into {
 };
 
 $em_scrubbed_for_person = scrub $em_input with rules {
+	_id: concat_strings("_P"),
 	SPONSOR_FIRST_NAME: [required, notContainedIn([""])],
 	SPONSOR_MIDDLE_NAME: required?:default(""),
 	SPONSOR_LAST_NAME: [required, notContainedIn([""])],
@@ -34,8 +35,8 @@ $em_scrubbed_for_funds = scrub $em_input with rules {
 
 $em_persons = map entities of $e in $em_scrubbed_for_person into [
 	entity $em_persons identified by $e._id with {
-		_id: concat_strings($e._id, "_P"),
 		_source: "earmarks",
+		originals: all($e._id),
 		
 		firstName: $e.SPONSOR_FIRST_NAME,
 		middleName: $e.SPONSOR_MIDDLE_NAME,
@@ -45,11 +46,11 @@ $em_persons = map entities of $e in $em_scrubbed_for_person into [
 		worksFor: [
 			{
 			legalEntity: null,
-			congessNumber: null
+			congressNumber: null
 			},
 			{
 			legalEntity: null,
-			congessNumber: null,
+			congressNumber: null,
 			position: null,
 			startYear: null,
 			endYear: null
@@ -88,3 +89,5 @@ $em_legalEntities, $em_funds = map entities of $e in $em_scrubbed_for_le, $f in 
 		description: $f.SHORT_DESCRIPTION
 	}
 ];
+
+write $em_persons to '../../../output/em_person_TEST.json';

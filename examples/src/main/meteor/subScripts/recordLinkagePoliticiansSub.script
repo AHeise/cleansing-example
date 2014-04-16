@@ -1,4 +1,4 @@
-compareParty = fn(party1, party2) { (lower_case(party1) == lower_case(party2) && (party1 != ""))? 1 : 0 };
+compareParty = fn(party1, party2) { ((party1 != null && party2 != null) && (lower_case(party1) == lower_case(party2)) && (party1 != ""))? 1 : 0 };
 compareMidName = fn(midName1, midName2) { (midName1 == "" || midName2 == "")? 0.8 : jaroWinkler(midName1,midName2)};
 compareYear = fn(year1,year2) { ((year1 && year2) && (year1 == year2)) ? 1 : 0 };
 

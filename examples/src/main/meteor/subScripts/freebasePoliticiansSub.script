@@ -51,7 +51,7 @@ $politicians, $parties = map entities of $politicians_scrubbed, $tenure_scrubbed
 				position: null
 			}
 		],
-		// fields to align shema
+		// fields to align schema
 		biography: "",
 		birth: null,
 		death: null
@@ -71,8 +71,7 @@ $politicians_clean = scrub $politicians with rules {
 };
 
 $parties_clean = scrub $parties with rules {
-	name: notContainedIn(["Unknown"]),
-	worksFor: {
-		legalEntity: required
-	}
+	name: [required, notContainedIn(["Unknown"])],
 };
+
+write $politicians_clean to '../../../output/freebase_person_TEST.json';

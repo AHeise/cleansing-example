@@ -32,11 +32,12 @@ public class ScriptRunner{
 		File scriptFile5 = new File("src/main/meteor/Freebase-Company.script");
 		File scriptFile6 = new File("src/main/meteor/fusion_persons.script");
 		File scriptFile7 = new File("src/main/meteor/combined.script");
-		File scriptFile8 = new File("src/main/meteor/usSpending.script");
-		File scriptFile9 = new File("src/main/meteor/subScripts/usearmarksPersonsSub.script");
-		File scriptFile10 = new File("src/main/meteor/subScripts/usearmarksPersonsSub.script");
-		File scriptFile11 = new File("src/main/meteor/subScripts/uscongressPoliticiansSub.script");
-		final SopremoPlan plan = parseScript(scriptFile9);
+		File scriptFile8 = new File("src/main/meteor/subScripts/usearmarksPersonsSub.script");
+		File scriptFile9 = new File("src/main/meteor/subScripts/uscongressPoliticiansSub.script");
+		File scriptFile10 = new File("src/main/meteor/subScripts/usearmarksSub.script");
+		File scriptFile11 = new File("src/main/meteor/subScripts/freebasePoliticiansSub.script");
+		File scriptFile12 = new File("src/main/meteor/usSpending.script");
+		final SopremoPlan plan = parseScript(scriptFile7);
 
 		this.client.submit(plan, null, true);
 	}
