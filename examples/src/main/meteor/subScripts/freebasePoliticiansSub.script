@@ -73,5 +73,3 @@ $politicians_clean = scrub $politicians with rules {
 $parties_clean = scrub $parties with rules {
 	name: [required, notContainedIn(["Unknown"])],
 };
-
-write $politicians_clean to '../../../output/freebase_person_TEST.json';

@@ -37,7 +37,6 @@ into [
                    		legalEntity : dict_replace($usCongress_scrubbed.state, path, "states")
                    	}
         ],
-       	//worksFor2 : dict_replace($usCongressParties.id, path, "parties")
     }
 ];
 
@@ -49,5 +48,3 @@ $usCongressParties_scrubbed = scrub $usCongressParties with rules {
 $usCongressPersons_scrubbed = scrub $usCongressPersons with rules {
 	lastName: [camelCase(), illegalCharacters(", ")?: removeIllegalCharacters]
 };
-
-write $usCongressPersons_scrubbed to '../../../output/congress_person_TEST.json';
