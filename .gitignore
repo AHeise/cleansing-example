@@ -4,6 +4,6 @@
 *.jar
 *.war
 *.ear
-examples/target/*
-examples/src/main/resources/govwild/output/*
-examples/output/*
+target/*
+src/main/resources/govwild/output/*
+output/*
