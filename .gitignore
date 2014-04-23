@@ -7,3 +7,4 @@
 target/*
 src/main/resources/govwild/output/*
 output/*
+/target
