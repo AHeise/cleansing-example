@@ -71,14 +71,10 @@ $politicians, $parties = map entities of $politicians_scrubbed, $tenure_scrubbed
 		nameAddition: $politicians_scrubbed.name[3],
 		worksFor: [ 
 			{
-				legalEntity: $parties_unrolled.id,
-				congressNumber: null
-			},
-			{
+				legalEntity: $parties.id,
 				startYear: ($tenure_scrubbed.from)? (split($tenure_scrubbed.from, "-")[0] as int) : null,
 				endYear: ($tenure_scrubbed.to)? (split($tenure_scrubbed.to, "-")[0] as int) : null,
 				congressNumber: null,
-				legalEntity: null,
 				position: null
 			}
 		],
