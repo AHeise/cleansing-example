@@ -2,12 +2,12 @@ using cleansing;
 using udf;
 
 //path constants
-path = "/home/fabian/Development/Stratosphere/cleansing-example/examples/input/scrub/";
+path = "/home/fabian/Development/Stratosphere/cleansing-example/input/scrub/";
 officialTitlesPath = path+"officialTitles.Prefix.dict";
 
-$politicians_in = read from 'file:///home/fabian/Development/Stratosphere/cleansing-example/examples/input/OriginalFreebasePolitician.json';
-$parties_in = read from 'file:///home/fabian/Development/Stratosphere/cleansing-example/examples/input/OriginalFreebasePoliticalParty.json';
-$tenure_in = read from 'file:///home/fabian/Development/Stratosphere/cleansing-example/examples/input/OriginalFreebasePoliticalPartyTenure.json';
+$politicians_in = read from 'file:///home/fabian/Development/Stratosphere/cleansing-example/input/OriginalFreebasePolitician.json';
+$parties_in = read from 'file:///home/fabian/Development/Stratosphere/cleansing-example/input/OriginalFreebasePoliticalParty.json';
+$tenure_in = read from 'file:///home/fabian/Development/Stratosphere/cleansing-example/input/OriginalFreebasePoliticalPartyTenure.json';
 
 //---------------------------------------------------------
 //SCRUBBING
@@ -66,15 +66,13 @@ $politicians, $parties = map entities of $politicians_scrubbed, $tenure_scrubbed
 		middleName: $politicians_scrubbed.name[1],
 		lastName: $politicians_scrubbed.name[2],
 		nameAddition: $politicians_scrubbed.name[3],
-		worksFor: [ 
+		worksFor: all( 
 			{
-				legalEntity: $parties.id,
+				legalEntity: $parties_unrolled.id,
 				startYear: ($tenure_scrubbed.from)? (split($tenure_scrubbed.from, "-")[0] as int) : null,
 				endYear: ($tenure_scrubbed.to)? (split($tenure_scrubbed.to, "-")[0] as int) : null,
-				congressNumber: null,
-				position: null
 			}
-		],
+		),
 		// fields to align shema
 		biography: "",
 		birth: null,

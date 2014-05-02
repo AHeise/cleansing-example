@@ -67,21 +67,14 @@ $politicians, $parties = map entities of $politicians_scrubbed, $tenure_scrubbed
 		middleName: $politicians_scrubbed.name[1],
 		lastName: $politicians_scrubbed.name[2],
 		nameAddition: $politicians_scrubbed.name[3],
-		worksFor: [ 
+		worksFor: all( 
 			{
-				legalEntity: dict_replace($parties_unrolled.name, path, "parties"),
-				//legalEntity: $parties_unrolled.id,
-				congressNumber: null
-			},
-			{
+				legalEntity: $parties_unrolled.id,
 				startYear: ($tenure_scrubbed.from)? (split($tenure_scrubbed.from, "-")[0] as int) : null,
 				endYear: ($tenure_scrubbed.to)? (split($tenure_scrubbed.to, "-")[0] as int) : null,
-				congressNumber: null,
-				legalEntity: null,
-				position: null
 			}
-		],
-		// fields to align schema
+		),
+		// fields to align shema
 		biography: "",
 		birth: null,
 		death: null
@@ -125,44 +118,43 @@ into [
     	name: $usCongress_scrubbed.party,
     	type: {category: "party"}
     },
-    entity $usCongressPersons identified by $usCongress_scrubbed._id with {
-        id: $usCongress_scrubbed._id,
+    entity $usCongressPersons identified by $usCongress_scrubbed.biography with {
        	_source: "uscongress",
        	originals : all($usCongress_scrubbed._id),
        	firstName: trim(split($usCongress_scrubbed.memberName, " ")[1]),
        	middleName: split($usCongress_scrubbed.memberName, " ")[2] ?: null,
        	lastName: split($usCongress_scrubbed.memberName, ",")[0],
-      	//path constants
       	nameAddition: remove_all_characters(split($usCongress_scrubbed.memberName, " ")[3] ?:"", "()") ?: null,
         biography: $usCongress_scrubbed.biography,
     	birth : split(replace($usCongress_scrubbed.birthDeath ? : "", '[^0-9-]', ""), "-")[0] ? split(replace($usCongress_scrubbed.birthDeath ? : "", '[^0-9-]', ""), "-")[0] as int : null,
         death : split(replace($usCongress_scrubbed.birthDeath ? : "", '[^0-9-]', ""), "-")[1] ? split(replace($usCongress_scrubbed.birthDeath ? : "", '[^0-9-]', ""), "-")[1] as int : null,
-        worksFor: [ {
+        worksForParty: all({
         				legalEntity : dict_replace($usCongress_scrubbed.party, path, "parties"),
-                    	congressNumber: (split($usCongress_scrubbed.congress, "\(") ? split($usCongress_scrubbed.congress, "\(")[0] : $usCongress_scrubbed.congress) as int
-                    },
-                    {
+        				startYear: split($usCongress_scrubbed.congress, "\(")[1] ? split(replace(split($usCongress_scrubbed.congress, "\(")[1],  '[^0-9-]', ""), "-")[0] as int : null,
+                   		endYear: split($usCongress_scrubbed.congress, "\(")[1] ? split(replace(split($usCongress_scrubbed.congress, "\(")[1],  '[^0-9-]', ""), "-")[1] as int : null
+                    }),
+        //here might be duplicates see usCongress_77771, usCongress_78321
+        worksForState: all({
                     	congressNumber: (split($usCongress_scrubbed.congress, "\(") ? split($usCongress_scrubbed.congress, "\(")[0] : $usCongress_scrubbed.congress) as int,
                    		startYear: split($usCongress_scrubbed.congress, "\(")[1] ? split(replace(split($usCongress_scrubbed.congress, "\(")[1],  '[^0-9-]', ""), "-")[0] as int : null,
-                   		endYear: split($usCongress_scrubbed.congress, "\(")[1] ? split(replace(split($usCongress_scrubbed.congress, "\(")[1],  '[^0-9-]', ""), "-")[0] as int : null,
+                   		endYear: split($usCongress_scrubbed.congress, "\(")[1] ? split(replace(split($usCongress_scrubbed.congress, "\(")[1],  '[^0-9-]', ""), "-")[1] as int : null,
                    		position : $usCongress_scrubbed.position,
                    		legalEntity : dict_replace($usCongress_scrubbed.state, path, "states")
-                   	}
-        ],
+                   	})
     }
 ];
 
-$usCongressPersons = group $usCongressPersons by $usCongressPersons.biography into {
-		_source: $usCongressPersons[0]._source,
-       	originals : all($usCongressPersons.originals),
-       	firstName: $usCongressPersons[0].firstName,
-       	middleName: $usCongressPersons[0].middleName,
-       	lastName: $usCongressPersons[0].lastName,
-      	nameAddition: $usCongressPersons[0].nameAddition,
-        biography: $usCongressPersons[0].biography,
-    	birth : $usCongressPersons[0].birth,
-        death : $usCongressPersons[0].death,
-        worksFor: arrayMerge($usCongressPersons[*].worksFor)
+$usCongressPersons = transform $usCongressPersons into {
+		_source: $usCongressPersons._source,
+       	originals : $usCongressPersons.originals,
+       	firstName: $usCongressPersons.firstName,
+       	middleName: $usCongressPersons.middleName,
+       	lastName: $usCongressPersons.lastName,
+      	nameAddition: $usCongressPersons.nameAddition,
+        biography: $usCongressPersons.biography,
+    	birth : $usCongressPersons.birth,
+        death : $usCongressPersons.death,
+        worksFor: unionAll($usCongressPersons.worksForParty, $usCongressPersons.worksForState)
 };
 
 $usCongressPersons_scrubbed = scrub $usCongressPersons with rules {
@@ -191,10 +183,10 @@ $pairs1 = link records $us in $usCongressPersons_scrubbed, $fb in $politicians_c
 		5*jaroWinkler($us.lastName, $fb.lastName) +
 		3*compareMidName($us.middleName, $fb.middleName) +
 		
-		compareParty($us.worksFor[0].legalEntity, $fb.worksFor[0].legalEntity)
+		//compareParty($us.worksFor[0].legalEntity, $fb.worksFor[0].legalEntity)
 		//compareYear($us.worksFor[1].startYear, $fb.worksFor[1].startYear) +
 		//compareYear($us.worksFor[1].endYear, $fb.worksFor[1].endYear)		
-		)/14 > 0.75);
+		)/13 > 0.75);
 write $pairs1 to '../../../output/pairs.json';
 //end politicians record linkage
 

@@ -35,32 +35,46 @@ into [
         biography: $usCongress_scrubbed.biography,
     	birth : split(replace($usCongress_scrubbed.birthDeath ? : "", '[^0-9-]', ""), "-")[0] ? split(replace($usCongress_scrubbed.birthDeath ? : "", '[^0-9-]', ""), "-")[0] as int : null,
         death : split(replace($usCongress_scrubbed.birthDeath ? : "", '[^0-9-]', ""), "-")[1] ? split(replace($usCongress_scrubbed.birthDeath ? : "", '[^0-9-]', ""), "-")[1] as int : null,
-        worksFor: [ {
+        worksForParty: all({
         				legalEntity : dict_replace($usCongress_scrubbed.party, path(), "parties"),
-                    },
-                    {
+        				startYear: split($usCongress_scrubbed.congress, "\(")[1] ? split(replace(split($usCongress_scrubbed.congress, "\(")[1],  '[^0-9-]', ""), "-")[0] as int : null,
+                   		endYear: split($usCongress_scrubbed.congress, "\(")[1] ? split(replace(split($usCongress_scrubbed.congress, "\(")[1],  '[^0-9-]', ""), "-")[0] as int : null
+                    }),
+        worksForState: all({
                     	congressNumber: (split($usCongress_scrubbed.congress, "\(") ? split($usCongress_scrubbed.congress, "\(")[0] : $usCongress_scrubbed.congress) as int,
                    		startYear: split($usCongress_scrubbed.congress, "\(")[1] ? split(replace(split($usCongress_scrubbed.congress, "\(")[1],  '[^0-9-]', ""), "-")[0] as int : null,
                    		endYear: split($usCongress_scrubbed.congress, "\(")[1] ? split(replace(split($usCongress_scrubbed.congress, "\(")[1],  '[^0-9-]', ""), "-")[0] as int : null,
                    		position : $usCongress_scrubbed.position,
                    		legalEntity : dict_replace($usCongress_scrubbed.state, path(), "states")
-                   	}
-        ]
+                   	})
     }
 ];
 
-$usCongressPersons = group $usCongressPersons by $usCongressPersons.biography into {
-		_source: $usCongressPersons[0]._source,
-       	originals : all($usCongressPersons.originals),
-       	firstName: $usCongressPersons[0].firstName,
-       	middleName: $usCongressPersons[0].middleName,
-       	lastName: $usCongressPersons[0].lastName,
-      	nameAddition: $usCongressPersons[0].nameAddition,
-        biography: $usCongressPersons[0].biography,
-    	birth : $usCongressPersons[0].birth,
-        death : $usCongressPersons[0].death,
-        worksFor: arrayMerge($usCongressPersons[*].worksFor)
+$usCongressPersons = transform $usCongressPersons into {
+		_source: $usCongressPersons._source,
+       	originals : $usCongressPersons.originals,
+       	firstName: $usCongressPersons.firstName,
+       	middleName: $usCongressPersons.middleName,
+       	lastName: $usCongressPersons.lastName,
+      	nameAddition: $usCongressPersons.nameAddition,
+        biography: $usCongressPersons.biography,
+    	birth : $usCongressPersons.birth,
+        death : $usCongressPersons.death,
+        worksFor: unionAll($usCongressPersons.worksForParty, $usCongressPersons.worksForState)
 };
+
+//$usCongressPersons = group $usCongressPersons by $usCongressPersons.biography into {
+//		_source: $usCongressPersons[0]._source,
+//       	originals : all($usCongressPersons.originals),
+//       	firstName: $usCongressPersons[0].firstName,
+//       	middleName: $usCongressPersons[0].middleName,
+//       	lastName: $usCongressPersons[0].lastName,
+//      	nameAddition: $usCongressPersons[0].nameAddition,
+//        biography: $usCongressPersons[0].biography,
+//    	birth : $usCongressPersons[0].birth,
+//        death : $usCongressPersons[0].death,
+//        worksFor: arrayMerge($usCongressPersons[*].worksFor)
+//};
 
 $usCongressParties_scrubbed = scrub $usCongressParties with rules {
 	id:  dict_replace(path(), "parties"),
