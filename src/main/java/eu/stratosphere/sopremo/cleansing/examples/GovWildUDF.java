@@ -26,18 +26,20 @@ import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import eu.stratosphere.sopremo.function.SopremoFunction;
 import eu.stratosphere.sopremo.function.SopremoFunction0;
 import eu.stratosphere.sopremo.function.SopremoFunction1;
 import eu.stratosphere.sopremo.function.SopremoFunction2;
 import eu.stratosphere.sopremo.function.SopremoFunction3;
+import eu.stratosphere.sopremo.function.SopremoVarargFunction1;
 import eu.stratosphere.sopremo.operator.Name;
 import eu.stratosphere.sopremo.packages.BuiltinProvider;
 import eu.stratosphere.sopremo.type.ArrayNode;
 import eu.stratosphere.sopremo.type.IArrayNode;
 import eu.stratosphere.sopremo.type.IJsonNode;
 import eu.stratosphere.sopremo.type.IObjectNode;
+import eu.stratosphere.sopremo.type.IStreamNode;
 import eu.stratosphere.sopremo.type.IntNode;
-import eu.stratosphere.sopremo.type.LongNode;
 import eu.stratosphere.sopremo.type.NullNode;
 import eu.stratosphere.sopremo.type.TextNode;
 
@@ -83,63 +85,6 @@ public class GovWildUDF implements BuiltinProvider {
 			}
 			return value.trim();
 		}
-
-		// @Override
-		// protected IJsonNode call(TextNode valueNode, TextNode dictionary,
-		// TextNode id) {
-		// BooleanNode ignoreCase = BooleanNode.TRUE;
-		// System.out.println(id);
-		// IArrayNode<IJsonNode> result = new ArrayNode<IJsonNode>(2);
-		// StringBuilder builder = new StringBuilder();
-		// String value = valueNode.toString();
-		//
-		// value = extractSuffixes(dictionary, builder, value,
-		// ignoreCase.getBooleanValue());
-		//
-		// String suffixes = builder.toString().replace(".", "").trim();
-		// if (value.endsWith(",")) {
-		// value = value.substring(0, value.length() - 1);
-		// }
-		//
-		// result.set(0, TextNode.valueOf(value.trim()));
-		// result.set(1, TextNode.valueOf(suffixes));
-		//
-		// return result;
-		// }
-		//
-		// private String extractSuffixes(TextNode dictionary,
-		// StringBuilder builder, String value, boolean ignoreCase) {
-		// String suffix;
-		// while ((suffix = this.dict.search(value, dictionary.toString(), 0,
-		// ignoreCase, true)) != null) {
-		// builder.append(", ").append(suffix);
-		// value = this.replaceSuffix(value, suffix, ignoreCase);
-		// // value = value.replaceFirst(suffix, "");
-		// }
-		// builder.delete(0, 2);
-		// return value;
-		// }
-		//
-		// private String replaceSuffix(String value, String suffix,
-		// boolean ignoreCase) {
-		// int startIndex;
-		// int endIndex;
-		// String formattedValue = this.format(value);
-		// if (ignoreCase) {
-		// startIndex = formattedValue.toLowerCase().indexOf(
-		// this.format(suffix).toLowerCase());
-		// } else {
-		// startIndex = formattedValue.indexOf(this.format(suffix));
-		// }
-		// endIndex = startIndex + suffix.length();
-		// String deleteString = formattedValue
-		// .substring(startIndex, endIndex);
-		// return value.replace(deleteString, "").trim();
-		// }
-		//
-		// private String format(String value) {
-		// return " " + value.trim() + " ";
-		// }
 	};
 
 	@Name(noun = "array_get")
@@ -151,7 +96,7 @@ public class GovWildUDF implements BuiltinProvider {
 			return array.get(index.getIntValue());
 		}
 	}
-
+	
 	@Name(noun = "getValue")
 	public static class GET_VALUE extends
 			SopremoFunction2<IObjectNode, TextNode> {

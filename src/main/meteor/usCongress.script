@@ -2,13 +2,13 @@ using cleansing;
 using udf;
 
 //path constants
-path = fn() { "/home/fabian/Development/Stratosphere/cleansing-example/examples/input/scrub/" };
+path = fn() { "/home/fabian/Development/Stratosphere/cleansing-example/input/scrub/" };
 
 //path = fn() { "/home/tommy-neubert/Arbeitsfläche/Hiwi/Repositories/cleansing-example/examples/src/main/resources/govwild/scrub/"};
 
-$usCongress = read from 'file:///home/fabian/Development/Stratosphere/cleansing-example/examples/input/OriginalUsCongress.json';
+$usCongress = read from '../../../input/OriginalUsCongress.json';
 
-$usCongress = sample $usCongress selectEvery 1;
+$usCongress = sample $usCongress selectEvery 10;
 
 $usCongress_scrubbed = scrub $usCongress with rules {
 	_id: [required, concat_strings("_P")],
@@ -25,21 +25,18 @@ into [
     	name: $usCongress_scrubbed.party,
     	type: {category: "party"}
     },
-    entity $usCongressPersons identified by $usCongress_scrubbed._id with {
-        id: $usCongress_scrubbed._id,
+    entity $usCongressPersons identified by $usCongress_scrubbed.biography with {
        	_source: "uscongress",
        	originals : all($usCongress_scrubbed._id),
        	firstName: trim(split($usCongress_scrubbed.memberName, " ")[1]),
        	middleName: split($usCongress_scrubbed.memberName, " ")[2] ?: null,
        	lastName: split($usCongress_scrubbed.memberName, ",")[0],
-      	//path constants
       	nameAddition: remove_all_characters(split($usCongress_scrubbed.memberName, " ")[3] ?:"", "()") ?: null,
         biography: $usCongress_scrubbed.biography,
     	birth : split(replace($usCongress_scrubbed.birthDeath ? : "", '[^0-9-]', ""), "-")[0] ? split(replace($usCongress_scrubbed.birthDeath ? : "", '[^0-9-]', ""), "-")[0] as int : null,
         death : split(replace($usCongress_scrubbed.birthDeath ? : "", '[^0-9-]', ""), "-")[1] ? split(replace($usCongress_scrubbed.birthDeath ? : "", '[^0-9-]', ""), "-")[1] as int : null,
         worksFor: [ {
         				legalEntity : dict_replace($usCongress_scrubbed.party, path(), "parties"),
-                    	congressNumber: (split($usCongress_scrubbed.congress, "\(") ? split($usCongress_scrubbed.congress, "\(")[0] : $usCongress_scrubbed.congress) as int
                     },
                     {
                     	congressNumber: (split($usCongress_scrubbed.congress, "\(") ? split($usCongress_scrubbed.congress, "\(")[0] : $usCongress_scrubbed.congress) as int,
@@ -48,10 +45,22 @@ into [
                    		position : $usCongress_scrubbed.position,
                    		legalEntity : dict_replace($usCongress_scrubbed.state, path(), "states")
                    	}
-        ],
-       	//worksFor2 : dict_replace($usCongressParties.id, path(), "parties")
+        ]
     }
 ];
+
+$usCongressPersons = group $usCongressPersons by $usCongressPersons.biography into {
+		_source: $usCongressPersons[0]._source,
+       	originals : all($usCongressPersons.originals),
+       	firstName: $usCongressPersons[0].firstName,
+       	middleName: $usCongressPersons[0].middleName,
+       	lastName: $usCongressPersons[0].lastName,
+      	nameAddition: $usCongressPersons[0].nameAddition,
+        biography: $usCongressPersons[0].biography,
+    	birth : $usCongressPersons[0].birth,
+        death : $usCongressPersons[0].death,
+        worksFor: arrayMerge($usCongressPersons[*].worksFor)
+};
 
 $usCongressParties_scrubbed = scrub $usCongressParties with rules {
 	id:  dict_replace(path(), "parties"),
@@ -62,5 +71,5 @@ $usCongressPersons_scrubbed = scrub $usCongressPersons with rules {
 	lastName: [camelCase(), illegalCharacters(", ")?: removeIllegalCharacters]
 };
 
-write $usCongressPersons_scrubbed to 'file:///home/fabian/Development/Stratosphere/cleansing-example/examples/output/usCongress_scrubbedPersons.json';
-write $usCongressParties_scrubbed to 'file:///home/fabian/Development/Stratosphere/cleansing-example/examples/output/usCongress_scrubbedParties.json';
+write $usCongressPersons_scrubbed to 'file:///home/fabian/Development/Stratosphere/cleansing-example/output/usCongress_scrubbedPersons.json';
+write $usCongressParties_scrubbed to 'file:///home/fabian/Development/Stratosphere/cleansing-example/output/usCongress_scrubbedParties.json';

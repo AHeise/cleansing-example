@@ -24,7 +24,7 @@ public class ScriptRunner{
 	protected File inputDir;
 	
 	@Test
-	public void testSuccessfulExecution() throws IOException {
+	public void runScript() throws IOException {
 		File scriptFile1 = new File("src/main/meteor/usCongress.script");
 		File scriptFile2 = new File("src/main/meteor/Freebase-Persons.script");
 		File scriptFile3 = new File("src/main/meteor/Freebase-Politicians.script");
@@ -38,7 +38,8 @@ public class ScriptRunner{
 		File scriptFile11 = new File("src/main/meteor/subScripts/freebasePoliticiansSub.script");
 		File scriptFile12 = new File("src/main/meteor/usSpending.script");
 		File scriptFile13 = new File("src/main/meteor/combinedPersons.script");
-		final SopremoPlan plan = parseScript(scriptFile13);
+		File scriptFile14 = new File("src/main/meteor/bugTC.script");
+		final SopremoPlan plan = parseScript(scriptFile3);
 		
 		this.client.submit(plan, null, true);
 	}
@@ -60,7 +61,6 @@ public class ScriptRunner{
 	}
 	
 	public SopremoPlan parseScript(final File script) {
-		// printBeamerSlide(script);
 		SopremoPlan plan = null;
 		try {
 			final QueryParser queryParser = new QueryParser().withInputDirectory(script.getParentFile());

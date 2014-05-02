@@ -4,7 +4,7 @@ using udf;
 //end imports
 
 //setup paths
-path = "/home/fabian/Development/Stratosphere/cleansing-example/examples/input/scrub/";
+path = "/home/fabian/Development/Stratosphere/cleansing-example/input/scrub/";
 
 officialTitlesPath = path+"officialTitles.Prefix.dict";
 //end setup paths
@@ -152,9 +152,17 @@ into [
     }
 ];
 
-$usCongressParties_scrubbed = scrub $usCongressParties with rules {
-	id:  dict_replace(path, "parties"),
-	name: notContainedIn(["Unknown"])
+$usCongressPersons = group $usCongressPersons by $usCongressPersons.biography into {
+		_source: $usCongressPersons[0]._source,
+       	originals : all($usCongressPersons.originals),
+       	firstName: $usCongressPersons[0].firstName,
+       	middleName: $usCongressPersons[0].middleName,
+       	lastName: $usCongressPersons[0].lastName,
+      	nameAddition: $usCongressPersons[0].nameAddition,
+        biography: $usCongressPersons[0].biography,
+    	birth : $usCongressPersons[0].birth,
+        death : $usCongressPersons[0].death,
+        worksFor: arrayMerge($usCongressPersons[*].worksFor)
 };
 
 $usCongressPersons_scrubbed = scrub $usCongressPersons with rules {
@@ -165,7 +173,7 @@ write $usCongressPersons_scrubbed to '../../../output/usPoliticians.json';
 
 //end uscongress politicians sub
 
-
+//optional sampling
 $usCongressPersons_scrubbed = sample $usCongressPersons_scrubbed selectEvery 1;
 $politicians_clean = sample $politicians_clean selectEvery 1;
 
@@ -174,7 +182,7 @@ $politicians_clean = sample $politicians_clean selectEvery 1;
 compareParty = fn(party1, party2) { ((party1 != null && party2 != null) && (lower_case(party1) == lower_case(party2)) && (party1 != ""))? 1 : 0 };
 compareMidName = fn(midName1, midName2) { (midName1 == "" || midName2 == "")? 0.8 : jaroWinkler(midName1,midName2)};
 
-$pairs = link records $us in $usCongressPersons_scrubbed, $fb in $politicians_clean
+$pairs1 = link records $us in $usCongressPersons_scrubbed, $fb in $politicians_clean
 	sort on [
 	              {$us.lastName : $fb.lastName}
 	]
@@ -187,28 +195,44 @@ $pairs = link records $us in $usCongressPersons_scrubbed, $fb in $politicians_cl
 		//compareYear($us.worksFor[1].startYear, $fb.worksFor[1].startYear) +
 		//compareYear($us.worksFor[1].endYear, $fb.worksFor[1].endYear)		
 		)/14 > 0.75);
-write $pairs to '../../../output/pairs.json';
+write $pairs1 to '../../../output/pairs.json';
 //end politicians record linkage
 
+//prevent bug in transitive closure
+//$pairs2 = read from '../../../output/pairs.json';
+//$pairs2 = cluster transitively $pairs2;
+
+//politicians global match
+
+//$pairs2 = global match $pair in $pairs2
+//	by  (5*jaroWinkler($pair[0].firstName, $pair[1].firstName) +
+//		5*jaroWinkler($pair[0].lastName, $pair[1].lastName) +
+//		3*compareMidName($pair[0].middleName, $pair[1].middleName) +
+		
+//		compareParty($pair[0].worksFor[0].legalEntity, $pair[1].worksFor[0].legalEntity)	
+//		)/14 > 0.75;
+//write $pairs2 to '../../../output/pairsgm.json';
+//end politicians match
+
 //politicians fuse
-$persons_final = fuse $pairs
-	with weights {
-		freebase: 0.9*{biography: 0.0, birth: 0.0, death: 0.0},
-		uscongress: 1.0
-	}
-with resolutions {
-	originals: mergeDistinct,
+//$persons_final = fuse $pairs2
+//	with weights {
+//		freebase: 0.9*{biography: 0.0, birth: 0.0, death: 0.0},
+//		uscongress: 1.0
+//	}
+//with resolutions {
+//	originals: mergeDistinct,
+//	
+//	firstName: mostFrequent,
+//	middleName: mostFrequent,
+//	lastName: mostFrequent,
+//	nameAddition: mergeDistinct,
 	
-	firstName: mostFrequent,
-	middleName: mostFrequent,
-	lastName: mostFrequent,
-	nameAddition: mergeDistinct,
-	
-	worksFor: mostFrequent,
-	biography: mostFrequent,
-	birth: mostFrequent,
-	death: mostFrequent
-};
+//	worksFor: mostFrequent,
+//	biography: mostFrequent,
+//	birth: mostFrequent,
+//	death: mostFrequent
+//};
 //end politicians fuse
 
-write $persons_final to '../../../output/persons_FINAL.json';
+//write $persons_final to '../../../output/persons_FINAL.json';
