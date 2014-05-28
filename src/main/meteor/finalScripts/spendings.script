@@ -1,0 +1,40 @@
+using cleansing;
+using udf;
+
+path = "/home/fabian/Development/Stratosphere/cleansing-example/input/scrub/";
+
+$spendings = read from '../../../../input/finalSources/spendingSample.csv';
+
+$spendings_scrubbed = scrub $spendings with rules {
+	//TODO
+};
+
+write $spendings_scrubbed to '../../../../output/spendingsScrubbed.json';
+
+$spendingsFunds, $spendingsLegalEntities = transform records $spendings_scrubbed
+into [
+    entity $spendingsFunds identified by ... with {
+    	_source: "spending",
+    	originals: [$spendings_scrubbed.id],
+    	//no sponsor information in spendings
+    	sponsors: null,
+    	recipient:  $spendingsLegalEntities.id,
+    	//TODO
+    	amount: ...,
+    },
+    entity $spendingsLegalEntities identified by $earmarks_scrubbed.earmark_id with {
+    	originals: [$spendings_scrubbed.id],
+    	//TODO
+    	name: ...,
+    	type: ...,
+    	address: {
+    		street: ...,
+    		addition: ...,
+    		city: ...,
+    		zipcode: ...,
+    		state: ...,
+    }
+];
+
+write $spendingsFunds to '../../../../output/spendingFunds.json';
+write $spendingsLegalEntities to '../../../../output/spendingLegalEntities.json';

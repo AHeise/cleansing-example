@@ -40,8 +40,8 @@ public class ScriptRunner{
 		File scriptFile13 = new File("src/main/meteor/combinedPersons.script");
 		File scriptFile14 = new File("src/main/meteor/bugTC.script");
 		File scriptFile15 = new File("src/main/meteor/usCongressNew.script");
-		File scriptFile16 = new File("src/main/meteor/freebaseNew.script");
-		final SopremoPlan plan = parseScript(scriptFile15);
+		File scriptFile16 = new File("src/main/meteor/finalScripts/freebaseNew.script");
+		final SopremoPlan plan = parseScript(scriptFile16);
 		
 		this.client.submit(plan, null, true);
 	}

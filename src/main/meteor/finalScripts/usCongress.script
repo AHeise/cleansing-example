@@ -1,0 +1,60 @@
+using cleansing;
+using udf;
+
+//path constants
+path = "/home/fabian/Development/Stratosphere/cleansing-example/input/scrub/";
+
+$congress = read from '../../../../input/finalSources/congressSample.json';
+
+$congress_scrubbed = scrub $congress with rules {
+	id: [required, type(text), concat_strings("_congress")],
+	congress_numbers: required,
+	enddate: required,
+	startdate: required,
+	party: required,
+	person: {
+		bioguideid : required,
+		birthday: [required, hasPattern("\d{4}(-\d{2}-\d{2})?")],
+		firstname: required,
+		lastname: required,
+		middlename: required
+	},
+	role_type: required,
+	state: [required, dict_replace(path, "states")]
+};
+
+write $congress_scrubbed to '../../../../output/congressScubbed.json';
+
+$congressParties, $congressPoliticians = transform records $congress_scrubbed
+into [
+    entity $congressParties identified by dict_replace($congress_scrubbed.party, path, "parties") with {
+    	_source: "congress",
+    	originals: [$congress_scrubbed.id],
+    	name: $congress_scrubbed.party
+    },
+    entity $congressPoliticians identified by $congressPoliticians.id with {
+       	_source: "congress",
+       	id: $congress_scrubbed.person.id,
+       	originals: [$congress_scrubbed.id],
+       	firstName: $congress_scrubbed.person.firstname,
+       	middleName: $congress_scrubbed.person.middlename,
+       	lastName: $congress_scrubbed.person.lastname,
+        biography: $congress_scrubbed.person.bioguideid,
+    	birth : $congress_scrubbed.person.birthday,
+    	//no death information in congress data
+    	death: null,
+        worksForParty: [
+        	{
+        		role: $congress_scrubbed.role,
+        		startdate: $congress_scrubbed.startdate,
+        		enddate: $congress_scrubbed.enddate,
+        		party: $congressParties.id,
+        		state: $congress_scrubbed.state,
+        		congress_numbers: $congress_scrubbed.person.congress_numbers
+        	}
+        ]
+    }
+];
+
+write $congressParties to '../../../../output/congressParties.json';
+write $congressPoliticians to '../../../../output/congressPoliticians.json';
