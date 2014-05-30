@@ -29,7 +29,8 @@ write $earmarks_scrubbed to '../../../../output/earmarksScrubbed.json';
 
 $earmarksPoliticians, $earmarksFunds, $earmarksLegalEntities, $earmarksParties = transform records $earmarks_scrubbed
 into [
-    entity $earmarksPoliticians identified by $earmarks_scrubbed.sponsor_code with {
+    entity $earmarksPoliticians identified by $earmarksPolitician  with {
+    	id: $earmarks_scrubbed.sponsor_code,
        	_source: "earmarks",
        	originals: [$earmarks_scrubbed.id],
        	firstName: $earmarks_scrubbed.sponsor_first_name,
@@ -40,17 +41,24 @@ into [
     	death: null,
         worksForParty: [
         	{
-        		role: $earmarks_scrubbed.sponsor_honorific,
         		startdate: null,
         		enddate: null,
         		party: $earmarksParties.id,
+        	}
+        ],
+        worksForOrganization: [
+            {
+        		role: $earmarks_scrubbed.sponsor_honorific,
+        		startdate: null,
+        		enddate: null,
         		state: $earmarks_scrubbed.sponsor_state_code,
         		//because we have 2009's earmarks it should be at least the 111th Congress?!
-        		congress_numbers: null
+        		congress_numbers: [111]
         	}
         ]
     },
-    entity $earmarksFunds identified by $earmarks_scrubbed.earmark_id with {
+    entity $earmarksFunds identified by $earmarksFunds.id with {
+    	id: $earmarks_scrubbed.earmark_id,
     	_source: "earmarks",
     	originals: [$usCongress_scrubbed.id],
     	sponsors: [$earmarksPoliticians.id],
@@ -58,7 +66,8 @@ into [
     	//in 'S' records of earmarks this is 0, only in the 'R' record is the amount
     	amount: max($earmarks_scrubbed.recipient_amount),
     },
-    entity $earmarksLegalEntities identified by $earmarks_scrubbed.recipient with {
+    entity $earmarksLegalEntities identified by $earmarksLegalEntities.id with {
+    	id: $earmarks_scrubbed.recipient,
     	_source: "earmarks",
     	originals: [$usCongress_scrubbed.id],
     	name: $earmarks_scrubbed.recipient,
@@ -72,7 +81,8 @@ into [
     		country: $earmarks_scrubbed.recipient_country
     	}
     },
-    entity $earmarksParties identified by dict_replace($earmarks_scrubbed.sponsor_party_affil, path, "parties") with {
+    entity $earmarksParties identified by $earmarksParties.id with {
+    	id: dict_replace($earmarks_scrubbed.sponsor_party_affil, path, "parties"),
     	_source: "earmarks",
     	originals: [$earmarks_scrubbed.id],
     	name: $earmarks_scrubbed.sponsor_party_affil

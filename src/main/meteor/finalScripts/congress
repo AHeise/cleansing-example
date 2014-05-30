@@ -27,7 +27,8 @@ write $congress_scrubbed to '../../../../output/congressScubbed.json';
 
 $congressParties, $congressPoliticians = transform records $congress_scrubbed
 into [
-    entity $congressParties identified by dict_replace($congress_scrubbed.party, path, "parties") with {
+    entity $congressParties identified by $congressParties.id with {
+    	id: dict_replace($congress_scrubbed.party, path, "parties"),
     	_source: "congress",
     	originals: [$congress_scrubbed.id],
     	name: $congress_scrubbed.party
@@ -45,13 +46,20 @@ into [
     	death: null,
         worksForParty: [
         	{
-        		role: $congress_scrubbed.role,
         		startdate: $congress_scrubbed.startdate,
         		enddate: $congress_scrubbed.enddate,
-        		party: $congressParties.id,
-        		state: $congress_scrubbed.state,
-        		congress_numbers: $congress_scrubbed.person.congress_numbers
+        		party: $congressParties.id
         	}
+        ],
+        
+        worksForOrganization: [
+            {
+            	role: $congress_scrubbed.role,
+            	startdate: $congress_scrubbed.startdate,
+            	enddate: $congress_scrubbed.enddate,
+            	state: $congress_scrubbed.state,
+            	congress_numbers: $congress_scrubbed.person.congress_numbers
+            }
         ]
     }
 ];
