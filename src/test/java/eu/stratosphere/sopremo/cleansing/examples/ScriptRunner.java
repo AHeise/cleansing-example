@@ -13,6 +13,7 @@ import org.junit.Test;
 import eu.stratosphere.meteor.QueryParser;
 import eu.stratosphere.sopremo.client.DefaultClient;
 import eu.stratosphere.sopremo.operator.SopremoPlan;
+import eu.stratosphere.sopremo.pact.SopremoUtil;
 import eu.stratosphere.sopremo.query.QueryParserException;
 import eu.stratosphere.sopremo.server.SopremoTestServer;
 
@@ -25,24 +26,8 @@ public class ScriptRunner{
 	
 	@Test
 	public void runScript() throws IOException {
-		File scriptFile1 = new File("src/main/meteor/usCongress.script");
-		File scriptFile2 = new File("src/main/meteor/Freebase-Persons.script");
-		File scriptFile3 = new File("src/main/meteor/Freebase-Politicians.script");
-		File scriptFile4 = new File("src/main/meteor/record_linkage_persons.script");
-		File scriptFile5 = new File("src/main/meteor/Freebase-Company.script");
-		File scriptFile6 = new File("src/main/meteor/fusion_persons.script");
-		File scriptFile7 = new File("src/main/meteor/combined.script");
-		File scriptFile8 = new File("src/main/meteor/subScripts/usearmarksPersonsSub.script");
-		File scriptFile9 = new File("src/main/meteor/subScripts/uscongressPoliticiansSub.script");
-		File scriptFile10 = new File("src/main/meteor/subScripts/usearmarksSub.script");
-		File scriptFile11 = new File("src/main/meteor/subScripts/freebasePoliticiansSub.script");
-		File scriptFile12 = new File("src/main/meteor/usSpending.script");
-		File scriptFile13 = new File("src/main/meteor/combinedPersons.script");
-		File scriptFile14 = new File("src/main/meteor/bugTC.script");
-		File scriptFile15 = new File("src/main/meteor/usCongressNew.script");
-		File scriptFile16 = new File("src/main/meteor/finalScripts/freebaseNew.script");
-		final SopremoPlan plan = parseScript(scriptFile16);
-		
+		final SopremoPlan plan = parseScript( new File("src/main/meteor/finalScripts/"+"earmarks"+".script"));
+		SopremoUtil.trace();
 		this.client.submit(plan, null, true);
 	}
 
