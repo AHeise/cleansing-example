@@ -26,45 +26,44 @@ $freebasePartyTenures_scrubbed = scrub $freebasePartyTenures with rules {
 write $freebasePoliticians_scrubbed to '../../../../output/freebasePoliticianScrubbed.json';
 write $freebasePartyTenures_scrubbed to '../../../../output/freebasePartyTenureScrubbed.json';
 
-//$freebasePoliticians_extracted, $freebaseParties = transform records $freebasePoliticians_scrubbed, $freebasePartyTenures_scrubbed
-//where ($freebasePoliticians_scrubbed.id == $freebasePartyTenures_scrubbed.politician.id)
-//into [
-//  entity $freebasePoliticians_extracted identified by $freebasePoliticians_extracted.id with {
-//	id: $freebasePoliticians_scrubbed.id,  
-//  	_source: "freebase",
-//  	originals: [$freebasePoliticians_scrubbed.id],
-//  	firstName: $freebasePoliticians_scrubbed.name[0],
-//	middleName: $freebasePoliticians_scrubbed.name[1],
-//	lastName: $freebasePoliticians_scrubbed.name[2],
-//  	biography: null,
-//  	birth: $freebasePoliticians_scrubbed.date_of_birth,
-//  	death: $freebasePoliticians_scrubbed.date_of_death,
-//  	worksForParty: [
-//  	   {
-//  	       startdate: freebasePartyTenures_scrubbed.from,
-//  	       enddate: freebasePartyTenures_scrubbed.to,
-//  	       party: $freebaseParties.id,
-//  	   }
-//  	],
+$freebasePoliticians_extracted, $freebaseParties = transform records $freebasePoliticians_scrubbed, $freebasePartyTenures_scrubbed
+where ($freebasePoliticians_scrubbed.id == $freebasePartyTenures_scrubbed.politician.id)
+into [
+  entity $freebasePoliticians_extracted identified by $freebasePoliticians_extracted.id with {
+	id: $freebasePoliticians_scrubbed.id,  
+  	_source: "freebase",
+  	name: $freebasePoliticians_scrubbed.name,
+  	//firstName: $freebasePoliticians_scrubbed.name[0],
+	//middleName: $freebasePoliticians_scrubbed.name[1],
+	//lastName: $freebasePoliticians_scrubbed.name[2],
+  	biography: null,
+  	birth: $freebasePoliticians_scrubbed.date_of_birth,
+  	death: $freebasePoliticians_scrubbed.date_of_death,
+  	worksForParty: [
+  	   {
+  	       startdate: $freebasePartyTenures_scrubbed.from,
+  	       enddate: $freebasePartyTenures_scrubbed.to,
+  	       party: $freebaseParties.id,
+  	   }
+  	],
 //  	worksForOrganization: [
 //  	   {
 //  	       startdate: $freebasePoliticians_scrubbed.government_positions_held.from,
 //  	       enddate: $freebasePoliticians_scrubbed.government_positions_held.to,
-//  	       role: $freebasePoliticians_scrubbed.office_position_or_title[0].name,
+//  	       //role: $freebasePoliticians_scrubbed.office_position_or_title[0].name,
 //  	       //no state info in freebase
 //  	       state: null,
 //  	       //TODO udf for congress number extraction needed
 //  	       congress_numbers: $freebasePoliticians_scrubbed.government_positions_held.legislative_sessions
 //  	   }
 //  	]
-//  },
-//  entity $freebaseParties identified by $freebaseParties.id with {
-//	id: dict_replace($freebasePartyTenures_scrubbed.politician.name, path, "parties"),
-//	source: "freebase",
-//  	originals: [$freebasePartyTenures_scrubbed.id],
-//  	name: $freebasePartyTenures_scrubbed.politician.name
-//  }
-//];
-//
-//write $freebasePoliticians_extracted to '../../../../output/freebasePoliticians_extracted.json';
-//write $freebaseParties to '../../../../output/freebaseParties.json';
+  },
+  entity $freebaseParties identified by $freebaseParties.id with {
+	id: dict_replace($freebasePartyTenures_scrubbed.party.name, path, "parties"),
+	source: "freebase",
+  	name: [$freebasePartyTenures_scrubbed.party.name]
+  }
+];
+
+write $freebasePoliticians_extracted to '../../../../output/freebasePoliticians_extracted.json';
+write $freebaseParties to '../../../../output/freebaseParties.json';

@@ -11,6 +11,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import eu.stratosphere.meteor.QueryParser;
+import eu.stratosphere.sopremo.SopremoEnvironment;
 import eu.stratosphere.sopremo.client.DefaultClient;
 import eu.stratosphere.sopremo.operator.SopremoPlan;
 import eu.stratosphere.sopremo.pact.SopremoUtil;
@@ -25,9 +26,30 @@ public class ScriptRunner{
 	protected File inputDir;
 	
 	@Test
-	public void runScript() throws IOException {
+	public void runCongress() throws IOException {
+		final SopremoPlan plan = parseScript( new File("src/main/meteor/finalScripts/"+"congress"+".script"));
+		//SopremoUtil.trace();
+		this.client.submit(plan, null, true);
+	}	
+	
+	@Test
+	public void runEarmarks() throws IOException {
 		final SopremoPlan plan = parseScript( new File("src/main/meteor/finalScripts/"+"earmarks"+".script"));
-		SopremoUtil.trace();
+		//SopremoUtil.trace();
+		this.client.submit(plan, null, true);
+	}	
+	
+	@Test
+	public void runFreebase() throws IOException {
+		final SopremoPlan plan = parseScript( new File("src/main/meteor/finalScripts/"+"freebase"+".script"));
+		//SopremoUtil.trace();
+		this.client.submit(plan, null, true);
+	}
+	
+	@Test
+	public void runSpendings() throws IOException {
+		final SopremoPlan plan = parseScript( new File("src/main/meteor/finalScripts/"+"spendings"+".script"));
+		//SopremoUtil.trace();
 		this.client.submit(plan, null, true);
 	}
 

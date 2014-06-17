@@ -3,7 +3,7 @@ using udf;
 
 path = "/home/fabian/Development/Stratosphere/cleansing-example/input/scrub/";
 
-$earmarks = read from '../../../../input/finalSources/earmarks2009mini.json';
+$earmarks = read from '../../../../input/finalSources/earmarks2009.json';
 
 $earmarks_scrubbed = scrub $earmarks with rules {
 	earmark_id: [required, type(text), concat_strings("_earmarks")],
@@ -12,8 +12,8 @@ $earmarks_scrubbed = scrub $earmarks with rules {
 //	sponsor_last_name: required,
 //	sponsor_middle_name: required,
 //	sponsor_honorific: required,
-	sponsor_party_affil: required?:default(""),
-	recipient: required,
+	sponsor_party_affil: required?:default("none"),
+	recipient: [required, notContainedIn([''])],
 //  recpient_type: [required, default("")],
 //	recipient_address_1: required,
 //	recipient_address_2: required,
@@ -29,36 +29,37 @@ write $earmarks_scrubbed to '../../../../output/earmarks2009scrubbed.json';
 
 $earmarksPoliticians, $earmarksFunds, $earmarksLegalEntities, $earmarksParties = transform records $earmarks_scrubbed
 into [
-//    entity $earmarksPoliticians identified by $earmarksPoliticians.id  with {
-//    	id: $earmarks_scrubbed.sponsor_code,
-//       	//_source: "earmarks",
-//       	firstName: $earmarks_scrubbed.sponsor_first_name,
-//       	middleName: $earmarks_scrubbed.sponsor_middle_name,
-//       	lastName: $earmarks_scrubbed.sponsor_last_name,
-//        //biography: null,
-//    	//birth : null,
-//    	//death: null,
-//        worksForParty: [
-//        	{
-//        		//startdate: null,
-//        		//enddate: null,
-//        		party: $earmarksParties.id,
-//        	}
-//        ],
+    entity $earmarksPoliticians identified by $earmarksPoliticians.id  with {
+    	//id: concat($earmarks_scrubbed.sponsor_first_name, $earmarks_scrubbed.sponsor_middle_name?:'', $earmarks_scrubbed.sponsor_lastname_name), 
+    	id: $earmarks_scrubbed.sponsor_code,
+       	_source: "earmarks",
+       	firstName: $earmarks_scrubbed.sponsor_first_name,
+       	middleName: $earmarks_scrubbed.sponsor_middle_name,
+       	lastName: $earmarks_scrubbed.sponsor_last_name,
+        biography: null,
+    	birth : null,
+    	death: null,
+        worksForParty: [
+        	{
+        		startdate: null,
+        		enddate: null,
+        		party: $earmarksParties.id
+        	}
+        ],
 //        worksForOrganization: [
 //            {
 //        		role: $earmarks_scrubbed.sponsor_honorific,
-//        		//startdate: null,
-//        		//enddate: null,
+//        		startdate: null,
+//        		enddate: null,
 //        		state: $earmarks_scrubbed.sponsor_state_code,
-//        		//because we have 2009's earmarks it should be at least the 111th Congress?!
+//        		because we have 2009's earmarks it should be at least the 111th Congress?!
 //        		congress_numbers: [111]
 //        	}
 //        ]
-//    },
+    },
     entity $earmarksLegalEntities identified by $earmarksLegalEntities.id with {
     	id: $earmarks_scrubbed.recipient,
-    	//_source: "earmarks",
+    	_source: "earmarks",
     	name: $earmarks_scrubbed.recipient,
     	type: $earmarks_scrubbed.recpient_type,
     	address: {
@@ -72,9 +73,9 @@ into [
     },
     entity $earmarksFunds identified by $earmarksFunds.id with {
     	id: $earmarks_scrubbed.earmark_id,
-    	//_source: "earmarks",
-    	sponsors: [$earmarksPoliticians.id],
-    	recipient:  [$earmarksLegalEntities.name],
+    	_source: "earmarks",
+    	sponsors: $earmarksPoliticians.id,
+    	recipient:  $earmarksLegalEntities.name,
     	//in 'S' records of earmarks this is 0, only in the 'R' record is the amount
     	amount: $earmarks_scrubbed.earmark_2008_sum,
     },

@@ -3,36 +3,39 @@ using udf;
 
 path = "/home/fabian/Development/Stratosphere/cleansing-example/input/scrub/";
 
-$spendings = read from '../../../../input/finalSources/spendingSample.csv';
+$spendings = read from '../../../../input/finalSources/spendingSample.json';
 
 $spendings_scrubbed = scrub $spendings with rules {
-	//TODO
+	contractingofficeagencyid: required,
+	contractingofficeid: required,
+	obligatedamount: [required, type(numeric)]
+
 };
 
 write $spendings_scrubbed to '../../../../output/spendingsScrubbed.json';
 
 $spendingsFunds, $spendingsLegalEntities = transform records $spendings_scrubbed
 into [
-    entity $spendingsFunds identified by ... with {
-    	_source: "spending",
-    	originals: [$spendings_scrubbed.id],
+    entity $spendingsFunds identified by $spendingsFunds.id with {
+    	id: $spendings_scrubbed.unique_transaction_id,
+    	//_source: "spending",
     	//no sponsor information in spendings
-    	sponsors: null,
+    	//sponsors: null,
     	recipient:  $spendingsLegalEntities.id,
-    	//TODO
-    	amount: ...,
+    	amount: $spendings_scrubbed.obligatedamount,
     },
-    entity $spendingsLegalEntities identified by $earmarks_scrubbed.earmark_id with {
-    	originals: [$spendings_scrubbed.id],
-    	//TODO
-    	name: ...,
-    	type: ...,
+    entity $spendingsLegalEntities identified by $spendingsLegalEntities.id with {
+    	id: $spendings_scrubbed.vendorname,
+    	name: $spendings_scrubbed.vendorname,
+    	//type: ...,
     	address: {
-    		street: ...,
-    		addition: ...,
-    		city: ...,
-    		zipcode: ...,
-    		state: ...,
+    		street: $spendings_scrubbed.streetaddress,
+    		//addition: concat($spendings_scrubbed.streetaddress2, $spendings_scrubbed.streetaddress3),
+    		city: $spendings_scrubbed.city,
+    		zipcode: $spendings_scrubbed.zipcde,
+    		state: $spendings_scrubbed.state,
+    		country:  $spendings_scrubbed.vendorcountrycode
+    	}	
     }
 ];
 

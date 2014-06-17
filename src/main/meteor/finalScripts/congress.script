@@ -29,37 +29,37 @@ $congressParties, $congressPoliticians = transform records $congress_scrubbed
 into [
     entity $congressParties identified by $congressParties.id with {
     	id: dict_replace($congress_scrubbed.party, path, "parties"),
-    	//_source: "congress",
+    	_source: "congress",
     	name: [$congress_scrubbed.party]
     },
-//    entity $congressPoliticians identified by $congressPoliticians.id with {
-//       	//_source: "congress",
-//       	id: $congress_scrubbed.person.id,
-//       	firstName: $congress_scrubbed.person.firstname,
-//       	middleName: $congress_scrubbed.person.middlename,
-//       	lastName: $congress_scrubbed.person.lastname,
-//        biography: $congress_scrubbed.person.bioguideid,
-//    	birth : $congress_scrubbed.person.birthday,
+    entity $congressPoliticians identified by $congressPoliticians.id with {
+       	_source: "congress",
+       	id: $congress_scrubbed.person.id,
+       	firstName: $congress_scrubbed.person.firstname,
+       	middleName: $congress_scrubbed.person.middlename,
+       	lastName: $congress_scrubbed.person.lastname,
+        biography: $congress_scrubbed.person.bioguideid,
+    	birth : $congress_scrubbed.person.birthday,
     	//no death information in congress data
-    	//death: null,
-//        worksForParty: [
-//        	{
-//        		startdate: $congress_scrubbed.startdate,
-//        		enddate: $congress_scrubbed.enddate,
-//        		party: $congressParties.id
-//        	}
-//        ],
-//        
-//        worksForOrganization: [
-//            {
-//            	role: $congress_scrubbed.role,
-//            	startdate: $congress_scrubbed.startdate,
-//            	enddate: $congress_scrubbed.enddate,
-//            	state: $congress_scrubbed.state,
-//            	congress_numbers: $congress_scrubbed.person.congress_numbers
-//            }
-//        ]
-//    }
+    	death: null,
+        worksForParty: [
+        	{
+        		startdate: $congress_scrubbed.startdate,
+        		enddate: $congress_scrubbed.enddate,
+        		party: $congressParties.id
+        	}
+        ],
+        
+        worksForOrganization: [
+            {
+            	//role: $congress_scrubbed.role,
+            	//startdate: $congress_scrubbed.startdate,
+            	//enddate: $congress_scrubbed.enddate,
+            	//state: $congress_scrubbed.state,
+            	//congress_numbers: $congress_scrubbed.person.congress_numbers
+            }
+        ]
+    }
 ];
 
 write $congressParties to '../../../../output/congressParties.json';
