@@ -1,0 +1,230 @@
+//imports
+using cleansing;
+using udf;
+//end imports
+
+//setup paths
+path = "/home/fabian/Development/Stratosphere/cleansing-example/input/scrub/";
+
+officialTitlesPath = path+"officialTitles.Prefix.dict";
+//end setup paths
+
+//load data
+//22.9 MB, records: 95253, columns: 8
+$usCongress = read from '../../../input/OriginalUsCongress.json';
+
+//12.8 MB, records: 40250, columns: 7
+$politicians_in = read from '../../../input/OriginalFreebasePolitician.json';
+
+//3.0 MB, records: 8097, columns: 6
+$parties_in = read from '../../../input/OriginalFreebasePoliticalParty.json';
+
+//5.3 MB, records: 25811, columns: 6
+$tenure_in = read from '../../../input/OriginalFreebasePoliticalPartyTenure.json';
+//end load data
+
+//extract politicians, party's (LE) from Freebase
+//---------------------------------------------------------
+//SCRUBBING1
+//---------------------------------------------------------
+$politicians_scrubbed = scrub $politicians_in with rules {
+	_id: [required, notContainedIn([""]), concat_strings("_P")],
+	id: required,
+	name: [required, normalize_name(officialTitlesPath)],
+	party: required?: default(""),
+};
+$parties_scrubbed = scrub $parties_in with rules {
+	_id: [required, notContainedIn([""])],
+	id: [required, notContainedIn([""])],
+	name: [required, remove_all_characters("'"), notContainedIn([""])],	
+	politiciansInThisParty: [required, notContainedIn([[]])],
+};
+$tenure_scrubbed = scrub $tenure_in with rules {
+	_id: [required, notContainedIn([""])],
+	id: [required, notContainedIn([""])],
+	from: [required, hasPattern("\d{4}(-\d{2}-\d{2})?")]?: default(null),
+	to: [required, hasPattern("\d{4}(-\d{2}-\d{2})?")]?: default(null)
+};
+
+$parties_unrolled = unroll $parties_scrubbed on "politiciansInThisParty";
+$politiciansJoindWithTenures = join $p in $politicians_scrubbed, $t in $tenure_scrubbed where ($p.party == $t.id) into {
+	id: $t.id,
+	p_id: $p._id,
+	p: $p,
+	t: $t
+};
+//---------------------------------------------------------
+
+//---------------------------------------------------------
+//EntityMapping
+//---------------------------------------------------------
+$politicians, $parties = map entities of $politicians_scrubbed, $tenure_scrubbed, $parties_unrolled where (($politicians_scrubbed.party == $tenure_scrubbed.id) and ($tenure_scrubbed.id == $parties_unrolled.politiciansInThisParty)) into [
+	entity $politicians identified by $politicians_scrubbed._id with {
+		originals: all($politicians_scrubbed._id),
+		_source: "freebase",
+		
+		firstName: $politicians_scrubbed.name[0],
+		middleName: $politicians_scrubbed.name[1],
+		lastName: $politicians_scrubbed.name[2],
+		nameAddition: $politicians_scrubbed.name[3],
+		worksFor: all( 
+			{
+				legalEntity: $parties_unrolled.id,
+				startYear: ($tenure_scrubbed.from)? (split($tenure_scrubbed.from, "-")[0] as int) : null,
+				endYear: ($tenure_scrubbed.to)? (split($tenure_scrubbed.to, "-")[0] as int) : null,
+			}
+		),
+		// fields to align shema
+		biography: "",
+		birth: null,
+		death: null
+	},
+	entity $parties identified by $parties_unrolled.id with {
+		original: $parties_unrolled._id,
+		name: $parties_unrolled.name,
+		type: {category: "party"}
+	}
+];
+//---------------------------------------------------------
+
+//---------------------------------------------------------
+//SCRUBBING2
+//---------------------------------------------------------
+$politicians_clean = scrub $politicians with rules {
+	lastName: [required, notContainedIn([""])],
+	firstName: [required, notContainedIn([""])]
+};
+
+$parties_clean = scrub $parties with rules {
+	name: [required, notContainedIn(["Unknown"])],
+};
+write $politicians_clean to '../../../output/fbPoliticians.json';
+
+//end extract politicians, party's (LE) from Freebase
+
+//uscongress politicians sub
+$usCongress_scrubbed = scrub $usCongress with rules {
+	_id: [required, concat_strings("_P")],
+	memberName: required,
+	biography: required,
+	party: required,
+    congress:required
+};
+
+$usCongressParties, $usCongressPersons = map entities of $usCongress_scrubbed
+into [
+    entity $usCongressParties identified by $usCongress_scrubbed.party with {
+    	original: $usCongress_scrubbed._id,
+    	name: $usCongress_scrubbed.party,
+    	type: {category: "party"}
+    },
+    entity $usCongressPersons identified by $usCongress_scrubbed.biography with {
+       	_source: "uscongress",
+       	originals : all($usCongress_scrubbed._id),
+       	firstName: trim(split($usCongress_scrubbed.memberName, " ")[1]),
+       	middleName: split($usCongress_scrubbed.memberName, " ")[2] ?: null,
+       	lastName: split($usCongress_scrubbed.memberName, ",")[0],
+      	nameAddition: remove_all_characters(split($usCongress_scrubbed.memberName, " ")[3] ?:"", "()") ?: null,
+        biography: $usCongress_scrubbed.biography,
+    	birth : split(replace($usCongress_scrubbed.birthDeath ? : "", '[^0-9-]', ""), "-")[0] ? split(replace($usCongress_scrubbed.birthDeath ? : "", '[^0-9-]', ""), "-")[0] as int : null,
+        death : split(replace($usCongress_scrubbed.birthDeath ? : "", '[^0-9-]', ""), "-")[1] ? split(replace($usCongress_scrubbed.birthDeath ? : "", '[^0-9-]', ""), "-")[1] as int : null,
+        worksForParty: all({
+        				legalEntity : dict_replace($usCongress_scrubbed.party, path, "parties"),
+        				startYear: split($usCongress_scrubbed.congress, "\(")[1] ? split(replace(split($usCongress_scrubbed.congress, "\(")[1],  '[^0-9-]', ""), "-")[0] as int : null,
+                   		endYear: split($usCongress_scrubbed.congress, "\(")[1] ? split(replace(split($usCongress_scrubbed.congress, "\(")[1],  '[^0-9-]', ""), "-")[1] as int : null
+                    }),
+        //here might be duplicates see usCongress_77771, usCongress_78321
+        worksForState: all({
+                    	congressNumber: (split($usCongress_scrubbed.congress, "\(") ? split($usCongress_scrubbed.congress, "\(")[0] : $usCongress_scrubbed.congress) as int,
+                   		startYear: split($usCongress_scrubbed.congress, "\(")[1] ? split(replace(split($usCongress_scrubbed.congress, "\(")[1],  '[^0-9-]', ""), "-")[0] as int : null,
+                   		endYear: split($usCongress_scrubbed.congress, "\(")[1] ? split(replace(split($usCongress_scrubbed.congress, "\(")[1],  '[^0-9-]', ""), "-")[1] as int : null,
+                   		position : $usCongress_scrubbed.position,
+                   		legalEntity : dict_replace($usCongress_scrubbed.state, path, "states")
+                   	})
+    }
+];
+
+$usCongressPersons = transform $usCongressPersons into {
+		_source: $usCongressPersons._source,
+       	originals : $usCongressPersons.originals,
+       	firstName: $usCongressPersons.firstName,
+       	middleName: $usCongressPersons.middleName,
+       	lastName: $usCongressPersons.lastName,
+      	nameAddition: $usCongressPersons.nameAddition,
+        biography: $usCongressPersons.biography,
+    	birth : $usCongressPersons.birth,
+        death : $usCongressPersons.death,
+        worksFor: unionAll($usCongressPersons.worksForParty, $usCongressPersons.worksForState)
+};
+
+$usCongressPersons_scrubbed = scrub $usCongressPersons with rules {
+	lastName: [required, notContainedIn([""]),camelCase(), illegalCharacters(", ")?: removeIllegalCharacters],
+	firstName: [required, notContainedIn([""])]
+};
+write $usCongressPersons_scrubbed to '../../../output/usPoliticians.json';
+
+//end uscongress politicians sub
+
+//optional sampling
+$usCongressPersons_scrubbed = sample $usCongressPersons_scrubbed selectEvery 1;
+$politicians_clean = sample $politicians_clean selectEvery 1;
+
+
+//politicians record linkage
+compareParty = fn(party1, party2) { ((party1 != null && party2 != null) && (lower_case(party1) == lower_case(party2)) && (party1 != ""))? 1 : 0 };
+compareMidName = fn(midName1, midName2) { (midName1 == "" || midName2 == "")? 0.8 : jaroWinkler(midName1,midName2)};
+
+$pairs1 = link records $us in $usCongressPersons_scrubbed, $fb in $politicians_clean
+	sort on [
+	              {$us.lastName : $fb.lastName}
+	]
+	where  ((
+		5*jaroWinkler($us.firstName, $fb.firstName) +
+		5*jaroWinkler($us.lastName, $fb.lastName) +
+		3*compareMidName($us.middleName, $fb.middleName) +
+		
+		//compareParty($us.worksFor[0].legalEntity, $fb.worksFor[0].legalEntity)
+		//compareYear($us.worksFor[1].startYear, $fb.worksFor[1].startYear) +
+		//compareYear($us.worksFor[1].endYear, $fb.worksFor[1].endYear)		
+		)/13 > 0.75);
+write $pairs1 to '../../../output/pairs.json';
+//end politicians record linkage
+
+//prevent bug in transitive closure
+//$pairs2 = read from '../../../output/pairs.json';
+//$pairs2 = cluster transitively $pairs2;
+
+//politicians global match
+
+//$pairs2 = global match $pair in $pairs2
+//	by  (5*jaroWinkler($pair[0].firstName, $pair[1].firstName) +
+//		5*jaroWinkler($pair[0].lastName, $pair[1].lastName) +
+//		3*compareMidName($pair[0].middleName, $pair[1].middleName) +
+		
+//		compareParty($pair[0].worksFor[0].legalEntity, $pair[1].worksFor[0].legalEntity)	
+//		)/14 > 0.75;
+//write $pairs2 to '../../../output/pairsgm.json';
+//end politicians match
+
+//politicians fuse
+//$persons_final = fuse $pairs2
+//	with weights {
+//		freebase: 0.9*{biography: 0.0, birth: 0.0, death: 0.0},
+//		uscongress: 1.0
+//	}
+//with resolutions {
+//	originals: mergeDistinct,
+//	
+//	firstName: mostFrequent,
+//	middleName: mostFrequent,
+//	lastName: mostFrequent,
+//	nameAddition: mergeDistinct,
+	
+//	worksFor: mostFrequent,
+//	biography: mostFrequent,
+//	birth: mostFrequent,
+//	death: mostFrequent
+//};
+//end politicians fuse
+
+//write $persons_final to '../../../output/persons_FINAL.json';

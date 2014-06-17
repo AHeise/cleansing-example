@@ -1,0 +1,52 @@
+using cleansing;
+using udf;
+
+//path constants
+path = fn() { "/home/fabian/workspace/git/cleansing-example/examples/src/main/resources/govwild/scrub/" };
+officialTitlesPath = fn() {"/home/fabian/workspace/git/cleansing-example/examples/src/main/resources/govwild/scrub/officialTitles.Prefix.dict"};
+
+scrubName = fn(name) {like(name, "([a-zA-Z]*[0-9]+[a-zA-Z]*)*")? "" : name};
+
+$companies_in = read from '../resources/govwild/input/OriginalFreebaseCompany.json';
+
+// ---------------------------------------------------------
+// SCRUBBING
+// ---------------------------------------------------------
+$companies_scrubbed = scrub $companies_in with rules {
+	_id: required,
+	advisors: [required, notContainedIn([[]])]
+};
+// ---------------------------------------------------------
+//write $companies_scrubbed to '../resources/govwild/output/SCRUB_Persons.json';
+// ---------------------------------------------------------
+
+// ---------------------------------------------------------
+// ENTITY EXTRACTION
+// ---------------------------------------------------------
+$companies_unrolled = unroll $companies_scrubbed on "advisors";
+// ---------------------------------------------------------
+$persons = map entities of $companies_unrolled into [
+	entity $persons identified by $companies_unrolled.advisors with {
+		_id: concat_strings($companies_unrolled._id, "_PA_", remove_all_characters($companies_unrolled.advisors, " ")),
+		worksFor: concat_strings($companies_unrolled._id),
+		
+		firstName: scrubName(normalize_whitespaces(normalize_name(remove_all_characters($companies_unrolled.advisors, "[]\\\'"), officialTitlesPath())[0])),
+		middleName: scrubName(normalize_whitespaces(normalize_name(remove_all_characters($companies_unrolled.advisors, "[]\\\'"), officialTitlesPath())[1])),
+		lastName: scrubName(normalize_whitespaces(normalize_name(remove_all_characters($companies_unrolled.advisors, "[]\\\'"), officialTitlesPath())[2])),
+		nameAddition: scrubName(normalize_whitespaces(normalize_name(remove_all_characters($companies_unrolled.advisors, "[]\\\'"), officialTitlesPath())[3]))
+	}
+];
+// ---------------------------------------------------------
+// ---------------------------------------------------------
+
+// ---------------------------------------------------------
+// SCRUBBING
+// ---------------------------------------------------------
+$advisors = scrub $persons with rules {
+	lastName: [required, notContainedIn([""])]
+};
+// ---------------------------------------------------------
+//write $politicians_clean to '../resources/govwild/output/SCRUB2_Politicians.json';
+// ---------------------------------------------------------
+
+write $advisors to '../resources/govwild/output/FreebaseAdvisors.json';

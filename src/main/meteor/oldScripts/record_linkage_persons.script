@@ -1,0 +1,28 @@
+using cleansing;
+using udf;
+
+compareParty = fn(party1, party2) { (lower_case(party1) == lower_case(party2) && (party1 != ""))? 1 : 0 };
+compareMidName = fn(midName1, midName2) { (midName1 == "" || midName2 == "")? 0.8 : jaroWinkler(midName1,midName2)};
+compareYear = fn(year1,year2) { ((year1 && year2) && (year1 == year2)) ? 1 : 0 };
+
+$usCongressPersons = read from 'file:///home/fabian/Development/Stratosphere/cleansing-example/examples/output/usCongress_scrubbedPersons.json';
+$usCongressPersons = sample $usCongressPersons selectEvery 100;
+
+$FreebasePoliticians = read from 'file:///home/fabian/Development/Stratosphere/cleansing-example/examples/output/Politicians.json';
+$FreebasePoliticians = sample $FreebasePoliticians selectEvery 10;
+
+$cluster = link records $usCongressPersons, $FreebasePoliticians
+
+sort on {$usCongressPersons.firstName : $FreebasePoliticians.firstName}
+	where  ((
+		5*jaroWinkler($usCongressPersons.firstName, $FreebasePoliticians.firstName) +
+		5*jaroWinkler($usCongressPersons.lastName, $FreebasePoliticians.lastName) +
+		3*compareMidName($usCongressPersons.middleName, $FreebasePoliticians.middleName) +
+		
+		compareParty($usCongressPersons.worksFor[0].legalEntity, $FreebasePoliticians.worksFor[0].legalEntity) +
+		compareYear($usCongressPersons.worksFor[1].startYear, $FreebasePoliticians.worksFor[1].startYear) +
+		compareYear($usCongressPersons.worksFor[1].endYear, $FreebasePoliticians.worksFor[1].endYear)		
+		)/16 > 0.75);
+	
+	
+write $cluster to 'file:///home/fabian/Development/Stratosphere/cleansing-example/examples/output/cluster.json';

@@ -1,0 +1,42 @@
+using cleansing;
+using udf;
+
+//path constants
+path = "/home/fabian/Development/Stratosphere/cleansing-example/examples/input/scrub";
+//path = "/home/tommy-neubert/Arbeitsfläche/Hiwi/Repositories/cleansing-example/examples/input/scrub/";
+
+officialTitlesPath = path+"officialTitles.Prefix.dict";
+
+//22.9 MB, records: 95253, columns: 8
+$usCongress = read from '../../../input/OriginalUsCongress.json';
+
+//12.8 MB, records: 40250, columns: 7
+$politicians_in = read from '../../../input/OriginalFreebasePolitician.json';
+
+//3.0 MB, records: 8097, columns: 6
+$parties_in = read from '../../../input/OriginalFreebasePoliticalParty.json';
+
+//5.3 MB, records: 25811, columns: 6
+$tenure_in = read from '../../../input/OriginalFreebasePoliticalPartyTenure.json';
+
+//21.4 MB, records: 43524, columns: 37
+$em_input = read from '../../../input/usearmarks2008.csv';
+
+include "src/main/meteor/subScripts/freebasePoliticiansSub.script";
+include "src/main/meteor/subScripts/uscongressPoliticiansSub.script";
+include "src/main/meteor/subScripts/usearmarksSub.script";
+
+write $em_funds to '../../../output/funds_earmark.json';
+write $em_legalEntities to '../../../output/legalEntities_earmark.json';
+
+$em_persons = sample $em_persons selectEvery 10;
+$usCongressPersons_scrubbed = sample $usCongressPersons_scrubbed selectEvery 100;
+$politicians_clean = sample $politicians_clean selectEvery 10;
+
+include "src/main/meteor/subScripts/recordLinkagePersonsEarmarkCongressSub.script";
+include "src/main/meteor/subScripts/fusionPersonsEarmarkCongressSub.script";
+
+include "src/main/meteor/subScripts/recordLinkagePoliticiansSub.script";
+include "src/main/meteor/subScripts/fusionPoliticiansSub.script";
+
+write $persons_final to '../../../output/persons_FINAL.json';

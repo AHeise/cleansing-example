@@ -1,0 +1,70 @@
+using cleansing;
+using udf;
+
+//path constants
+path = "/home/fabian/Development/Stratosphere/cleansing-example/input/scrub/";
+officialTitlesPath = path+"officialTitles.Prefix.dict";
+
+$freebasePoliticians = read from '../../../../input/finalSources/freebasePoliticians.json';
+$freebasePartyTenures = read from '../../../../input/finalSources/freebasePartyTenures.json';
+
+$freebasePoliticians_scrubbed = scrub $freebasePoliticians with rules {
+	id : [required, type(text), concat_strings("_freebasePolitician")],
+	date_of_birth : [required, hasPattern("\d{4}(-\d{2}-\d{2})?"), default(null)],
+	date_of_death : [required, hasPattern("\d{4}(-\d{2}-\d{2})?"), default(null)],
+	name : required?normalize_name(officialTitlesPath):default("")
+};
+
+$freebasePartyTenures_scrubbed = scrub $freebasePartyTenures with rules {
+	id : [required, type(text), concat_strings("_freebasePartyTenure")],
+	//from : [required, hasPattern("\d{4}(-\d{2}-\d{2})?"), default(null)],
+	//to : [required, hasPattern("\d{4}(-\d{2}-\d{2})?"), default(null)],
+	politician: {id : required},
+	party: {name : required}
+};
+
+write $freebasePoliticians_scrubbed to '../../../../output/freebasePoliticianScrubbed.json';
+write $freebasePartyTenures_scrubbed to '../../../../output/freebasePartyTenureScrubbed.json';
+
+//$freebasePoliticians_extracted, $freebaseParties = transform records $freebasePoliticians_scrubbed, $freebasePartyTenures_scrubbed
+//where ($freebasePoliticians_scrubbed.id == $freebasePartyTenures_scrubbed.politician.id)
+//into [
+//  entity $freebasePoliticians_extracted identified by $freebasePoliticians_extracted.id with {
+//	id: $freebasePoliticians_scrubbed.id,  
+//  	_source: "freebase",
+//  	originals: [$freebasePoliticians_scrubbed.id],
+//  	firstName: $freebasePoliticians_scrubbed.name[0],
+//	middleName: $freebasePoliticians_scrubbed.name[1],
+//	lastName: $freebasePoliticians_scrubbed.name[2],
+//  	biography: null,
+//  	birth: $freebasePoliticians_scrubbed.date_of_birth,
+//  	death: $freebasePoliticians_scrubbed.date_of_death,
+//  	worksForParty: [
+//  	   {
+//  	       startdate: freebasePartyTenures_scrubbed.from,
+//  	       enddate: freebasePartyTenures_scrubbed.to,
+//  	       party: $freebaseParties.id,
+//  	   }
+//  	],
+//  	worksForOrganization: [
+//  	   {
+//  	       startdate: $freebasePoliticians_scrubbed.government_positions_held.from,
+//  	       enddate: $freebasePoliticians_scrubbed.government_positions_held.to,
+//  	       role: $freebasePoliticians_scrubbed.office_position_or_title[0].name,
+//  	       //no state info in freebase
+//  	       state: null,
+//  	       //TODO udf for congress number extraction needed
+//  	       congress_numbers: $freebasePoliticians_scrubbed.government_positions_held.legislative_sessions
+//  	   }
+//  	]
+//  },
+//  entity $freebaseParties identified by $freebaseParties.id with {
+//	id: dict_replace($freebasePartyTenures_scrubbed.politician.name, path, "parties"),
+//	source: "freebase",
+//  	originals: [$freebasePartyTenures_scrubbed.id],
+//  	name: $freebasePartyTenures_scrubbed.politician.name
+//  }
+//];
+//
+//write $freebasePoliticians_extracted to '../../../../output/freebasePoliticians_extracted.json';
+//write $freebaseParties to '../../../../output/freebaseParties.json';

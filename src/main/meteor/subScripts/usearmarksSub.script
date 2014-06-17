@@ -1,0 +1,93 @@
+appendStreet = fn(street1, street2) { (street2 == "")? concat_strings(street1) : concat_strings(street1, ", ", street2) };
+
+$em_input = transform $em_input into {
+	_id: generateId(),
+	$em_input.*
+};
+
+$em_scrubbed_for_person = scrub $em_input with rules {
+	_id: concat_strings("_P"),
+	SPONSOR_FIRST_NAME: [required, notContainedIn([""])],
+	SPONSOR_MIDDLE_NAME: required?:default(""),
+	SPONSOR_LAST_NAME: [required, notContainedIn([""])],
+};
+
+$em_scrubbed_for_le = scrub $em_input with rules {
+	EARMARK_ID: required,
+	RECIPIENT: [required, notContainedIn(["Not yet available", ""])],
+	RECIPIENT_STREET_1: [required, notContainedIn([null])]?:default(""),
+	RECIPIENT_STREET_2: [required, notContainedIn([null])]?:default(""),
+	RECIPIENT_CITY: [required,notContainedIn([""])]?:default(null),
+	RECIPIENT_STATE: [required,notContainedIn([""])]?:default(null),
+	RECIPIENT_ZIPCODE: [required,notContainedIn([""])]?:default(null),
+	RECIPIENT_COUNTRY: [required,notContainedIn([""])]?:default(null),
+	RECIPIENT_COMMENT: [required,notContainedIn([""])]?:default(null),
+	PHONE: [required, parsePhoneNumbers()]?:default([])
+};
+
+$em_scrubbed_for_funds = scrub $em_input with rules {
+	CERTIFYING_OFFICIAL: required?:default(null),
+	CERTIFYING_ORGANIZATION: required?:default(null),
+	SHORT_DESCRIPTION: required?:default(""),
+	ENACTED_YEAR: [required, hasPattern("\d{4}")],
+	AMOUNT: [required, notContainedIn([0.0])]
+};
+
+$em_persons = map entities of $e in $em_scrubbed_for_person into [
+	entity $em_persons identified by $e._id with {
+		_source: "earmarks",
+		originals: all($e._id),
+		
+		firstName: $e.SPONSOR_FIRST_NAME,
+		middleName: $e.SPONSOR_MIDDLE_NAME,
+		lastName: $e.SPONSOR_LAST_NAME,
+		nameAddition: [],
+		
+		worksFor: [
+			{
+			legalEntity: null,
+			congressNumber: null
+			},
+			{
+			legalEntity: null,
+			congressNumber: null,
+			position: null,
+			startYear: null,
+			endYear: null
+			}
+		],
+		
+		biography: null,
+		birth: null,
+		death: null
+	}
+];
+
+$em_legalEntities, $em_funds = map entities of $e in $em_scrubbed_for_le, $f in $em_scrubbed_for_funds where ($e._id == $f._id) into [
+	entity $em_legalEntities identified by $e._id with {
+		_id: concat_strings($e._id, "_L"),
+		originals: all($e._id),
+		earmarkId: $e.EARMARK_ID,
+		name: $e.RECIPIENT,
+		phone: $e.PHONE,
+		addresses: {
+			city: $e.RECIPIENT_CITY,
+			country: $e.RECIPIENT_COUNTRY,
+			state: $e.RECIPIENT_STATE,
+			street: appendStreet($e.RECIPIENT_STREET_1, $e.RECIPIENT_STREET_2),
+			zipCode: $e.RECIPIENT_ZIPCODE
+		}
+	},
+	entity $em_funds identified by $f._id with {
+		_id: concat_strings($f._id, "_F"),
+		originals: $f._id,
+		amount: $f.AMOUNT,
+		certifyingOfficial: $f.CERTIFYING_OFFICIAL,
+		certifyingOrganization: $f.CERTIFYING_ORGANIZATION,
+		year: $f.ENACTED_YEAR,
+		recipient: $em_legalEntities._id,
+		description: $f.SHORT_DESCRIPTION
+	}
+];
+
+write $em_persons to '../../../output/em_person_TEST.json';

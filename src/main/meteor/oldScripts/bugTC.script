@@ -1,0 +1,33 @@
+//imports
+using cleansing;
+using udf;
+//end imports
+
+//setup paths
+path = "/home/fabian/Development/Stratosphere/cleansing-example/input/scrub/";
+
+officialTitlesPath = path+"officialTitles.Prefix.dict";
+//end setup paths
+
+$pairs = read from '../../../output/pairs_small.json';
+
+//politicians record linkage
+compareParty = fn(party1, party2) { ((party1 != null && party2 != null) && (lower_case(party1) == lower_case(party2)) && (party1 != ""))? 1 : 0 };
+compareMidName = fn(midName1, midName2) { (midName1 == "" || midName2 == "")? 0.8 : jaroWinkler(midName1,midName2)};
+
+//$pairs = sample $pairs selectEvery 100;
+
+$pairs = cluster transitively $pairs;
+
+//politicians global match
+//$pairs = global match $pair in $pairs
+//	by  (5*jaroWinkler($pair[0].firstName, $pair[1].firstName) +
+//		5*jaroWinkler($pair[0].lastName, $pair[1].lastName) +
+//		3*compareMidName($pair[0].middleName, $pair[1].middleName) +
+//		
+//		compareParty($pair[0].worksFor[0].legalEntity, $pair[1].worksFor[0].legalEntity)	
+//		)/14 > 0.75;
+//end politicians match
+
+
+write $pairs to '../../../output/pairs_bug.json';
