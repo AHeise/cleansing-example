@@ -8,29 +8,29 @@ $spendings = read from '../../../../input/finalSources/spendingSample.json';
 $spendings_scrubbed = scrub $spendings with rules {
 	contractingofficeagencyid: required,
 	contractingofficeid: required,
-	obligatedamount: [required, type(numeric)]
-
+	obligatedamount: [required, type(numeric)],
+	streetaddress2: required?:default(""),
+	streetaddress3: required?:default("")
 };
 
 write $spendings_scrubbed to '../../../../output/spendingsScrubbed.json';
 
 $spendingsFunds, $spendingsLegalEntities = transform records $spendings_scrubbed
 into [
-    entity $spendingsFunds identified by $spendingsFunds.id with {
-    	id: $spendings_scrubbed.unique_transaction_id,
-    	//_source: "spending",
+    entity $spendingsFunds with {
+    	uniqueId: $spendings_scrubbed.unique_transaction_id,
+    	_source: "spending",
     	//no sponsor information in spendings
-    	//sponsors: null,
+    	sponsors: null,
     	recipient:  $spendingsLegalEntities.id,
     	amount: $spendings_scrubbed.obligatedamount,
     },
-    entity $spendingsLegalEntities identified by $spendingsLegalEntities.id with {
-    	id: $spendings_scrubbed.vendorname,
+    entity $spendingsLegalEntities identified by $spendingsLegalEntities.name with {
     	name: $spendings_scrubbed.vendorname,
     	//type: ...,
     	address: {
     		street: $spendings_scrubbed.streetaddress,
-    		//addition: concat($spendings_scrubbed.streetaddress2, $spendings_scrubbed.streetaddress3),
+    		addition: concat_strings($spendings_scrubbed.streetaddress2, $spendings_scrubbed.streetaddress3),
     		city: $spendings_scrubbed.city,
     		zipcode: $spendings_scrubbed.zipcde,
     		state: $spendings_scrubbed.state,

@@ -11,10 +11,8 @@ import org.junit.Before;
 import org.junit.Test;
 
 import eu.stratosphere.meteor.QueryParser;
-import eu.stratosphere.sopremo.SopremoEnvironment;
 import eu.stratosphere.sopremo.client.DefaultClient;
 import eu.stratosphere.sopremo.operator.SopremoPlan;
-import eu.stratosphere.sopremo.pact.SopremoUtil;
 import eu.stratosphere.sopremo.query.QueryParserException;
 import eu.stratosphere.sopremo.server.SopremoTestServer;
 
