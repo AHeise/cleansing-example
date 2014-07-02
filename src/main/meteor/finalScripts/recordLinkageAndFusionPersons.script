@@ -3,9 +3,9 @@ using udf;
 
 $congressPoliticians = read from  '../../../../output/congressPoliticians.json';
 $freebasePoliticians_extracted = read from '../../../../output/freebasePoliticians_extracted.json';
-$earmarksPoliticians_extracted = read from '../../../../output/earmarksPoliticians.json';
+$earmarksPoliticians = read from '../../../../output/earmarksPoliticians.json';
 
-$personsUnioned = union $congressPoliticians, $freebasePoliticians_extracted, $earmarksPoliticians_extracted;
+$personsUnioned = union $congressPoliticians, $freebasePoliticians_extracted, $earmarksPoliticians;
 
 threshold = 0.9;
 
