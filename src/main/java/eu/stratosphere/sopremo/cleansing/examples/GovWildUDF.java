@@ -14,11 +14,7 @@
  **********************************************************************************************************************/
 package eu.stratosphere.sopremo.cleansing.examples;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
-import java.io.IOException;
+import java.io.*;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
@@ -32,13 +28,7 @@ import eu.stratosphere.sopremo.function.SopremoFunction2;
 import eu.stratosphere.sopremo.function.SopremoFunction3;
 import eu.stratosphere.sopremo.operator.Name;
 import eu.stratosphere.sopremo.packages.BuiltinProvider;
-import eu.stratosphere.sopremo.type.ArrayNode;
-import eu.stratosphere.sopremo.type.IArrayNode;
-import eu.stratosphere.sopremo.type.IJsonNode;
-import eu.stratosphere.sopremo.type.IObjectNode;
-import eu.stratosphere.sopremo.type.IntNode;
-import eu.stratosphere.sopremo.type.NullNode;
-import eu.stratosphere.sopremo.type.TextNode;
+import eu.stratosphere.sopremo.type.*;
 
 public class GovWildUDF implements BuiltinProvider {
 
@@ -102,7 +92,23 @@ public class GovWildUDF implements BuiltinProvider {
 		protected IJsonNode call(IObjectNode object, TextNode field) {
 			return object.get(field.toString());
 		}
+	}
 
+	@Name(noun = "lookup")
+	public static class LOOKUP extends SopremoFunction2<IJsonNode, IArrayNode<IObjectNode>> {
+		private transient Map<IJsonNode, IJsonNode> map;
+		
+		@Override
+		protected IJsonNode call(IJsonNode key, IArrayNode<IObjectNode> entries) {
+			if(this.map == null) {
+				this.map  = new HashMap<IJsonNode, IJsonNode>();
+				for (IObjectNode entry : entries) {
+					this.map.put(entry.get("key"), entry.get("value"));
+				}
+			}
+			final IJsonNode value = this.map.get(key);
+			return value == null ? NullNode.getInstance() : value;
+		}
 	}
 
 	@Name(noun = "normalize_name")
