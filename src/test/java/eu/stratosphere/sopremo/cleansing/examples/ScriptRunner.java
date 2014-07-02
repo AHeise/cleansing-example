@@ -50,6 +50,13 @@ public class ScriptRunner{
 		//SopremoUtil.trace();
 		this.client.submit(plan, null, true);
 	}
+	
+	@Test
+	public void runRecordLinkageAndFusionPersons() throws IOException {
+		final SopremoPlan plan = parseScript( new File("src/main/meteor/finalScripts/"+"recordLinkageAndFusionPersons"+".script"));
+		//SopremoUtil.trace();
+		this.client.submit(plan, null, true);
+	}
 
 	@Before
 	public final void setup() throws Exception {

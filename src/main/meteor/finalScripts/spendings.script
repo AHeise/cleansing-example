@@ -1,40 +1,41 @@
 using cleansing;
 using udf;
 
-path = "/home/fabian/Development/Stratosphere/cleansing-example/input/scrub/";
+path = "../../../../input/scrub/";
 
-$spendings = read from '../../../../input/finalSources/spendingSample.json';
+$spendings = read from '../../../../input/finalSources/spendingClean.csv';
 
 $spendings_scrubbed = scrub $spendings with rules {
-	contractingofficeagencyid: required,
-	contractingofficeid: required,
-	obligatedamount: [required, type(numeric)],
-	streetaddress2: required?:default(""),
-	streetaddress3: required?:default("")
+	UniqueTransactionID: required,
+	RecipientName: required,
+	AgencyID: required,
+	DollarsObligated: [required, type(numeric)],
+	RecipientAddressLine123: required?:default(""),
 };
 
-write $spendings_scrubbed to '../../../../output/spendingsScrubbed.json';
+//no writing for better performance
+//write $spendings_scrubbed to '../../../../output/spendingsScrubbed.json';
 
 $spendingsFunds, $spendingsLegalEntities = transform records $spendings_scrubbed
 into [
     entity $spendingsFunds with {
-    	uniqueId: $spendings_scrubbed.unique_transaction_id,
+    	uniqueId: $spendings_scrubbed.UniqueTransactionID,
     	_source: "spending",
     	//no sponsor information in spendings
-    	sponsors: null,
+    	sponsors: [],
     	recipient:  $spendingsLegalEntities.id,
-    	amount: $spendings_scrubbed.obligatedamount,
+    	amount: $spendings_scrubbed.DollarsObligated,
     },
     entity $spendingsLegalEntities identified by $spendingsLegalEntities.name with {
-    	name: $spendings_scrubbed.vendorname,
+    	name: $spendings_scrubbed.RecipientName,
     	//type: ...,
     	address: {
-    		street: $spendings_scrubbed.streetaddress,
-    		addition: concat_strings($spendings_scrubbed.streetaddress2, $spendings_scrubbed.streetaddress3),
-    		city: $spendings_scrubbed.city,
-    		zipcode: $spendings_scrubbed.zipcde,
-    		state: $spendings_scrubbed.state,
-    		country:  $spendings_scrubbed.vendorcountrycode
+    		street: $spendings_scrubbed.RecipientAddressLine123,
+    		addition: null,
+    		city: $spendings_scrubbed.RecipientCity,
+    		zipcode: $spendings_scrubbed.RecipientZipCode,
+    		state: $spendings_scrubbed.RecipientState,
+    		country:  null
     	}	
     }
 ];
