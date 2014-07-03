@@ -1,9 +1,7 @@
 using cleansing;
 using udf;
 
-path = "../../../../input/scrub/";
-
-$earmarks = read from '../../../../input/finalSources/earmarks2009mini.json';
+$earmarks = read from '../../../../input/finalSources/earmarks2009.json';
 $states = read csv from '../../../../input/scrub/states2.dict' delimiter ';' columns ['key', 'value'];
 $parties = read csv from '../../../../input/scrub/parties2.dict' delimiter ';' columns ['key', 'value'];
 
@@ -15,12 +13,13 @@ $earmarks_scrubbed = scrub $earmarks with rules {
 	earmark_2008_sum: required
 };
 
-write $earmarks_scrubbed to '../../../../output/earmarks2009scrubbed.json';
+//no writing for better performance
+//write $earmarks_scrubbed to '../../../../output/earmarks2009scrubbed.json';
 
 $earmarksPoliticians, $earmarksLegalEntities, $earmarksFunds, $earmarksParties = transform records $earmarks_scrubbed
 into [
     entity $earmarksPoliticians identified by $earmarksPoliticians.earmarkCode with {
-    	originalId: [$earmarks_scrubbed.earmark_id],
+    	//originalId: [$earmarks_scrubbed.earmark_id],
     	earmarkCode: $earmarks_scrubbed.sponsor_code,
        	_source: "earmarks",
        	firstName: $earmarks_scrubbed.sponsor_first_name,
@@ -48,7 +47,7 @@ into [
         ]
     },
     entity $earmarksLegalEntities identified by $earmarksLegalEntities.name with {
-    	originalId: [$earmarks_scrubbed.earmark_id],
+    	//originalId: [$earmarks_scrubbed.earmark_id],
     	_source: "earmarks",
     	name: $earmarks_scrubbed.recipient,
     	type: $earmarks_scrubbed.recpient_type,
@@ -70,7 +69,7 @@ into [
     	amount: $earmarks_scrubbed.earmark_2008_sum,
       },
     entity $earmarksParties identified by $earmarksParties.name with {
-    	originalId: [$earmarks_scrubbed.earmark_id],
+    	//originalId: [$earmarks_scrubbed.earmark_id],
     	_source: "earmarks",
     	name: $earmarks_scrubbed.sponsor_party_affil
     }

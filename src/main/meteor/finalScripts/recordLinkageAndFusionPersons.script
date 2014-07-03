@@ -1,47 +1,69 @@
 using cleansing;
 using udf;
 
-//path constants
-path = "/home/fabian/Development/Stratosphere/cleansing-example/input/scrub/";
-
 $congressPoliticians = read from  '../../../../output/congressPoliticians.json';
 $freebasePoliticians_extracted = read from '../../../../output/freebasePoliticians_extracted.json';
 $earmarksPoliticians = read from '../../../../output/earmarksPoliticians.json';
 
-compareParty = fn(party1, party2) { (lower_case(party1) == lower_case(party2) && (party1 != ""))? 1 : 0 };
-compareMidName = fn(midName1, midName2) { (midName1 == "" || midName2 == "")? 0.8 : jaroWinkler(midName1,midName2)};
-compareYear = fn(year1,year2) { ((year1 && year2) && (year1 == year2)) ? 1 : 0 };
+$personsUnioned = union $congressPoliticians, $freebasePoliticians_extracted, $earmarksPoliticians;
 
-$persons_cluster1 = link records $congressPoliticians, $freebasePoliticians_extracted
+threshold = 0.9;
+
+compareMidName = fn(midName1, midName2) { (midName1 == "" || midName2 == "")? 0.8 : jaroWinkler(midName1,midName2)};
+compareYear = fn(year1,year2) { ((year1 && year2) && (year1 == year2)) ? 1 : threshold };
+
+$persons_cluster1 = detect duplicates $personsUnioned
 //two SNM runs
-sort on [{$usCongressPersons.firstName : $FreebasePoliticians.firstName}, {$usCongressPersons.lastName : $FreebasePoliticians.lastName}]
+sort on [$personsUnioned.firstName, $personsUnioned.lastName, $personsUnioned.birth]
 	where  ((
-		5*jaroWinkler($usCongressPersons.firstName, $FreebasePoliticians.firstName) +
-		5*jaroWinkler($usCongressPersons.lastName, $FreebasePoliticians.lastName) +
-		3*compareMidName($usCongressPersons.middleName, $FreebasePoliticians.middleName)
-		
-		//compareParty($usCongressPersons.worksFor[0].legalEntity, $FreebasePoliticians.worksFor[0].legalEntity) +
-		//compareYear($usCongressPersons.worksFor[1].startYear, $FreebasePoliticians.worksFor[1].startYear) +
-		//compareYear($usCongressPersons.worksFor[1].endYear, $FreebasePoliticians.worksFor[1].endYear)		
-		)/13 > 0.75);
+		5*jaroWinkler($personsUnioned.firstName) +
+		5*jaroWinkler($personsUnioned.lastName)+
+		3*compareMidName($personsUnioned[0].middleName, $personsUnioned[1].middleName)+
+		7*compareYear(substring($personsUnioned[0].birth?:"0", 0, 4) as int, substring($personsUnioned[1].birth?:"0", 0, 4) as int)
+		)/20 > threshold)
+		and ($personsUnioned[0].birth&&$personsUnioned[1].birth?levenshtein($personsUnioned.birth) > 0.8:true)
+		and	$personsUnioned[0]._source != $personsUnioned[1]._source
+	with window 20;
+
+//threshold = 0.9;
+//
+//compareMidName = fn(midName1, midName2) { (midName1 == "" || midName2 == "")? 0.8 : jaroWinkler(midName1,midName2)};
+//compareYear = fn(year1,year2) { ((year1 && year2) && (year1 == year2)) ? 1 : threshold };
+//
+//$persons_cluster1 = link records $congressPoliticians, $freebasePoliticians_extracted
+////two SNM runs
+//sort on [{$congressPoliticians.firstName : $freebasePoliticians_extracted.firstName}, {$congressPoliticians.lastName : $freebasePoliticians_extracted.lastName}]
+//	where  ((
+//		5*jaroWinkler($congressPoliticians.firstName, $freebasePoliticians_extracted.firstName) +
+//		5*jaroWinkler($congressPoliticians.lastName, $freebasePoliticians_extracted.lastName) +
+//		3*compareMidName($congressPoliticians.middleName, $freebasePoliticians_extracted.middleName)+
+//		7*compareYear(substring($congressPoliticians.birth, 0, 4) as int, substring($freebasePoliticians_extracted.birth, 0, 4) as int)
+//		)/20 > threshold) and levenshtein($congressPoliticians.birth, $freebasePoliticians_extracted.birth) > threshold
+//	with window 20;
+
+
+write $persons_cluster1 to '../../../../output/persons_dups.json';
+
+$persons_cluster2 = cluster transitively $persons_cluster1;
+
+write $persons_cluster2 to '../../../../output/persons_dups_transitive.json';
 	
-	
-$persons = fuse $persons_cluster1
+$persons = fuse $persons_cluster2
 with weights {
 	freebase: 0.7,
 	uscongress: 1.0
 }
 with resolutions {
-originals: mergeDistinct,
-
-firstName: mostFrequent,
-middleName: mostFrequent,
-lastName: mostFrequent,
-
-worksFor: mostFrequent,
-biography: mostFrequent,
-birth: mostFrequent,
-death: mostFrequent
+	_source: mergeDistinct,
+	id: mergeDistinct,
+	firstName: mergeDistinct,
+	middleName: mergeDistinct,
+	lastName: mergeDistinct,
+	biography: mergeDistinct,
+	birth : mergeDistinct,
+	death: mergeDistinct,
+	//worksForParty: mergeDistinct,
+	//worksForOrganization: mergeDistinct
 };
 
 write $persons to '../../../../output/persons_FINAL.json';

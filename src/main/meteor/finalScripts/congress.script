@@ -1,17 +1,16 @@
 using cleansing;
 using udf;
 
-//path constants
-path = "/home/fabian/Development/Stratosphere/cleansing-example/input/scrub/";
-
 $congress = read from '../../../../input/finalSources/congress.json';
+$states = read csv from '../../../../input/scrub/states2.dict' delimiter ';' columns ['key', 'value'];
+$parties = read csv from '../../../../input/scrub/parties2.dict' delimiter ';' columns ['key', 'value'];
 
 $congress_scrubbed = scrub $congress with rules {
 	id: [required, type(text), concat_strings("_congress")],
 	congress_numbers: required,
 	enddate: required,
 	startdate: required,
-	party: required?dict_replace(path, "parties"):default(""),
+	party: required?lookup($parties):default(""),
 	person: {
 		bioguideid : required,
 		birthday: [required, hasPattern("\d{4}(-\d{2}-\d{2})?")],
@@ -20,10 +19,11 @@ $congress_scrubbed = scrub $congress with rules {
 		middlename: required
 	},
 	role_type: required,
-	state: [required, dict_replace(path, "states")]
+	state: [required, lookup($states)]
 };
 
-write $congress_scrubbed to '../../../../output/congressScubbed.json';
+//no writing for better performance
+//write $congress_scrubbed to '../../../../output/congressScubbed.json';
 
 $congressParties, $congressPoliticians = transform records $congress_scrubbed
 into [

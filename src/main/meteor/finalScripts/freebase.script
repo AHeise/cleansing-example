@@ -1,9 +1,8 @@
 using cleansing;
 using udf;
 
-//path constants
-path = "/home/fabian/Development/Stratosphere/cleansing-example/input/scrub/";
-officialTitlesPath = path+"officialTitles.Prefix.dict";
+$parties = read csv from '../../../../input/scrub/parties2.dict' delimiter ';' columns ['key', 'value'];
+$officialTitles = read csv from '../../../../input/scrub/officialTitles.Prefix.dict' delimiter ',' columns ['title'];
 
 $freebasePoliticians = read from '../../../../input/finalSources/freebasePoliticians.json';
 $freebasePartyTenures = read from '../../../../input/finalSources/freebasePartyTenures.json';
@@ -12,7 +11,7 @@ $freebasePoliticians_scrubbed = scrub $freebasePoliticians with rules {
 	id : [required, type(text), concat_strings("_freebasePolitician")],
 	date_of_birth : [required, hasPattern("\d{4}(-\d{2}-\d{2})?"), default(null)],
 	date_of_death : [required, hasPattern("\d{4}(-\d{2}-\d{2})?"), default(null)],
-	name : required?normalize_name(officialTitlesPath):default("")
+	name : required?normalize_name($officialTitles, 'title'):default("")
 };
 
 $freebasePartyTenures_scrubbed = scrub $freebasePartyTenures with rules {
@@ -20,11 +19,12 @@ $freebasePartyTenures_scrubbed = scrub $freebasePartyTenures with rules {
 	//from : [required, hasPattern("\d{4}(-\d{2}-\d{2})?"), default(null)],
 	//to : [required, hasPattern("\d{4}(-\d{2}-\d{2})?"), default(null)],
 	politician: {id : required},
-	party: {name : required?dict_replace(path, "parties"):default("")}
+	party: {name : required?lookup($parties):default("")}
 };
 
-write $freebasePoliticians_scrubbed to '../../../../output/freebasePoliticianScrubbed.json';
-write $freebasePartyTenures_scrubbed to '../../../../output/freebasePartyTenureScrubbed.json';
+//
+//write $freebasePoliticians_scrubbed to '../../../../output/freebasePoliticianScrubbed.json';
+//write $freebasePartyTenures_scrubbed to '../../../../output/freebasePartyTenureScrubbed.json';
 
 $freebasePoliticians_extracted = transform records $freebasePoliticians_scrubbed
 into [
@@ -40,23 +40,12 @@ into [
   	worksForOrganization: map($freebasePoliticians_scrubbed.government_positions_held, fn(pos) {
   		{startdate: pos.from,
         enddate: pos.to,
-        role: pos.office_position_or_title,
+        role: pos.office_position_or_title[*].name,
         //no state info in freebase
         state: null,
         //TODO udf for congress number extraction needed
-        congress_numbers: pos.legislative_sessions}
+        congress_numbers: pos.legislative_sessions[*].name}
   	})
-//  	worksForOrganization: [
-//  	   {
-//  	       startdate: $freebasePoliticians_scrubbed.government_positions_held.from,
-//  	       enddate: $freebasePoliticians_scrubbed.government_positions_held.to,
-//  	       role: $freebasePoliticians_scrubbed.government_positions_held.office_position_or_title.name,
-//  	       //no state info in freebase
-//  	       state: null,
-//  	       //TODO udf for congress number extraction needed
-//  	       congress_numbers: $freebasePoliticians_scrubbed.government_positions_held.legislative_sessions
-//  	   }
-//  	]
   }
 ];
 

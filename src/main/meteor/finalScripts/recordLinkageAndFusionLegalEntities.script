@@ -1,0 +1,32 @@
+using cleansing;
+using udf;
+
+$ermarksLegalEntities = read from '../../../../output/earmarksLegalEntities.json';
+$spendingLegalEntities = read from '../../../../output/spendingLegalEntities.json';
+
+$legalEntitiesUnioned = union $congressPoliticians, $freebasePoliticians_extracted, $earmarksPoliticians_extracted;
+
+threshold = 0.9;
+
+$legalEntities_cluster1 = detect duplicates $legalEntitiesUnioned
+//two SNM runs
+sort on [$legalEntitiesUnioned..., ]
+	where  ((
+		...
+	with window 20;
+
+write $legalEntities_cluster1 to '../../../../output/legalEntities_dups.json';
+
+$legalEntities_cluster2 = cluster transitively $legalEntities_cluster1;
+
+write $legalEntities_cluster2 to '../../../../output/legalEntities_dups_transitive.json';
+	
+$legalEntities = fuse $legalEntities_cluster2
+with weights {
+	...
+}
+with resolutions {
+	...
+};
+
+write $legalEntities to '../../../../output/legalEntities_FINAL.json';

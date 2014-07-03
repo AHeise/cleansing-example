@@ -14,7 +14,6 @@
  **********************************************************************************************************************/
 package eu.stratosphere.sopremo.cleansing.examples;
 
-import java.io.*;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
@@ -28,25 +27,31 @@ import eu.stratosphere.sopremo.function.SopremoFunction2;
 import eu.stratosphere.sopremo.function.SopremoFunction3;
 import eu.stratosphere.sopremo.operator.Name;
 import eu.stratosphere.sopremo.packages.BuiltinProvider;
-import eu.stratosphere.sopremo.type.*;
+import eu.stratosphere.sopremo.type.ArrayNode;
+import eu.stratosphere.sopremo.type.IArrayNode;
+import eu.stratosphere.sopremo.type.IJsonNode;
+import eu.stratosphere.sopremo.type.IObjectNode;
+import eu.stratosphere.sopremo.type.IntNode;
+import eu.stratosphere.sopremo.type.NullNode;
+import eu.stratosphere.sopremo.type.TextNode;
 
 public class GovWildUDF implements BuiltinProvider {
 
 	@Name(noun = "extract_name")
 	public static class EXTRACT_NAME extends
-			SopremoFunction2<TextNode, TextNode> {
+			SopremoFunction3<TextNode, IArrayNode<IObjectNode>, TextNode> {
 
 		private transient DictionarySearch dict = new DictionarySearch();
 
 		@Override
-		protected IJsonNode call(TextNode valueNode, TextNode dictionary) {
+		protected IJsonNode call(TextNode valueNode, IArrayNode<IObjectNode> entries, TextNode column) {
 			System.out.println(valueNode.toString());
 			IArrayNode<IJsonNode> result = new ArrayNode<IJsonNode>(2);
 			result.set(1, new ArrayNode<TextNode>());
 			String value = valueNode.toString();
 
 			String addition;
-			while ((addition = this.dict.search(value, dictionary.toString(),
+			while ((addition = this.dict.search(value, entries, column,
 					0, true, true)) != null) {
 				((IArrayNode<TextNode>) result.get(1)).add(TextNode
 						.valueOf(addition.trim()));
@@ -113,12 +118,12 @@ public class GovWildUDF implements BuiltinProvider {
 
 	@Name(noun = "normalize_name")
 	public static class NORMALIZE_NAME extends
-			SopremoFunction2<TextNode, TextNode> {
+			SopremoFunction3<TextNode, IArrayNode<IObjectNode>, TextNode> {
 
 		private DictionarySearch dict = new DictionarySearch();
 
 		@Override
-		protected IJsonNode call(TextNode fullName, TextNode officialTitlesPath) {
+		protected IJsonNode call(TextNode fullName, IArrayNode<IObjectNode> entries, TextNode column) {
 			if (fullName == null)
 				return NullNode.getInstance();
 
@@ -128,7 +133,7 @@ public class GovWildUDF implements BuiltinProvider {
 			StringBuilder nameAdd = new StringBuilder("");
 			while (addition != null) {
 				addition = this.dict.search(nameAndAddition[0],
-						officialTitlesPath.toString(), 0, false, false);
+						entries, column,0, false, false);
 				if (addition != null) {
 					nameAdd.append(" ").append(addition);
 					nameAndAddition[0] = nameAndAddition[0].replace(addition,
@@ -207,27 +212,13 @@ public class GovWildUDF implements BuiltinProvider {
 	private static class DictionarySearch {
 		private String line, entry, found;
 
-		private transient String dictionary;
-		private transient File dictionaryFile;
-
 		private int size, position;
 
 		private int recordNr = 0;
 
-		public String search(String searchStr, String dictionary, int where,
-				boolean ignoreCase, boolean first) {
+		public String search(String searchStr, IArrayNode<IObjectNode> entries, TextNode column,
+				int where, boolean ignoreCase, boolean first) {
 			if ((searchStr == null) || searchStr.equals("")) {
-				return null;
-			}
-			if (this.dictionary == null || !this.dictionary.equals(dictionary)) {
-				this.dictionaryFile = new File(dictionary);
-				this.dictionary = dictionary;
-			}
-			BufferedReader br;
-			try {
-				br = new BufferedReader(new FileReader(this.dictionaryFile));
-			} catch (FileNotFoundException e1) {
-				e1.printStackTrace();
 				return null;
 			}
 
@@ -236,34 +227,27 @@ public class GovWildUDF implements BuiltinProvider {
 
 			searchStr = format(searchStr, ignoreCase);
 
-			try {
-				while ((this.line = br.readLine()) != null) {
-					this.entry = format(this.line, ignoreCase);
+			for (IObjectNode line : entries) {
+				this.line = line.get(column.toString()).toString();
+				this.entry = format(this.line, ignoreCase);
 
-					this.position = where > 0 ? searchStr
-							.lastIndexOf(this.entry) : searchStr
-							.indexOf(this.entry);
+				this.position = where > 0 ? searchStr.lastIndexOf(this.entry)
+						: searchStr.indexOf(this.entry);
 
-					if (this.position < 0
-							|| (where > 0 && (this.position + this.entry
-									.length()) < searchStr.length())
-							|| (where < 0 && this.position > 0)) {
-						continue;
-					}
+				if (this.position < 0
+						|| (where > 0 && (this.position + this.entry.length()) < searchStr
+								.length()) || (where < 0 && this.position > 0)) {
+					continue;
+				}
 
-					if (this.line.length() > this.size) {
-						this.found = this.line;
-						this.size = this.line.length();
+				if (this.line.length() > this.size) {
+					this.found = this.line;
+					this.size = this.line.length();
 
-						if (first && this.size > 0) {
-							break;
-						}
+					if (first && this.size > 0) {
+						break;
 					}
 				}
-				br.close();
-			} catch (IOException e) {
-				e.printStackTrace();
-				return null;
 			}
 
 			return this.found;
@@ -280,99 +264,99 @@ public class GovWildUDF implements BuiltinProvider {
 		}
 	}
 
-	@Name(noun = "dict_replace")
-	public static class DICTIONARY_REPLACEMENT extends
-			SopremoFunction3<TextNode, IJsonNode, TextNode> {
-
-		private String DICT_ENDING = ".dict";
-
-		private String DEFAULT_DICTIONARY_PATH = System.getProperty("user.dir")
-				+ "/resources/dictionaries/";
-
-		private String KEY_VALUE_SEPARATOR = "\\|";
-
-		private String VALUE_SEPARATOR = ";";
-
-		@Override
-		protected IJsonNode call(TextNode inputNode, IJsonNode dictionaryPath,
-				TextNode dictNameNode) {
-			Map<String, String> mappings = this
-					.loadDictionary(
-							(dictionaryPath instanceof NullNode) ? this.DEFAULT_DICTIONARY_PATH
-									: dictionaryPath.toString(), dictNameNode
-									.toString());
-			String input = inputNode.toString();
-			String result = input;
-			String sub;
-
-			if (mappings.containsKey(input)) {
-				result = mappings.get(input);
-			} else if (mappings.containsValue(input)) {
-				result = input;
-			} else if ((sub = this.mappingSimilarTo(input, mappings)) != null) {
-				result = sub;
-			} else {
-				// for unknown entities
-				result = input;
-			}
-			return TextNode.valueOf(result);
-		}
-
-		// we also map similar strings
-		private String mappingSimilarTo(String input,
-				Map<String, String> mappings) {
-			for (String value : mappings.values()) {
-				if (input.startsWith(value) || input.endsWith(value)) {
-					return value;
-				}
-			}
-			return null;
-		}
-
-		private Map<String, String> loadDictionary(String dictionaryPath,
-				String dictionaryName) {
-			Map<String, String> mappings = new HashMap<String, String>();
-			if (dictionaryName == null || "".equals(dictionaryName)) {
-				return mappings;
-			}
-			try {
-				BufferedReader br = new BufferedReader(new FileReader(
-						dictionaryPath + dictionaryName + this.DICT_ENDING));
-				String line, key;
-				String[] keyValues, values;
-
-				try {
-					while ((line = br.readLine()) != null) {
-						keyValues = line.split(this.KEY_VALUE_SEPARATOR);
-						key = keyValues[0];
-						values = keyValues[1].split(this.VALUE_SEPARATOR);
-						for (String value : values) {
-							// we have to put the key-value pairs in reversed
-							// order to allow multiple mappings from the
-							// same shortcut (key) to different spellings
-							// (values)
-							mappings.put(value, key);
-						}
-					}
-					br.close();
-				} catch (IOException e) {
-					e.printStackTrace();
-
-					// if an error occurs we just return an empty map to allow
-					// further execution of the meteor script
-					return new HashMap<String, String>();
-				}
-			} catch (FileNotFoundException e) {
-				e.printStackTrace();
-
-				// if the specified dictionary doesn't exist we return the empty
-				// map to allow further execution of the
-				// meteor script
-				return mappings;
-			}
-			return mappings;
-		}
-	};
+//	@Name(noun = "dict_replace")
+//	public static class DICTIONARY_REPLACEMENT extends
+//			SopremoFunction3<TextNode, IJsonNode, TextNode> {
+//
+//		private String DICT_ENDING = ".dict";
+//
+//		private String DEFAULT_DICTIONARY_PATH = System.getProperty("user.dir")
+//				+ "/resources/dictionaries/";
+//
+//		private String KEY_VALUE_SEPARATOR = "\\|";
+//
+//		private String VALUE_SEPARATOR = ";";
+//
+//		@Override
+//		protected IJsonNode call(TextNode inputNode, IJsonNode dictionaryPath,
+//				TextNode dictNameNode) {
+//			Map<String, String> mappings = this
+//					.loadDictionary(
+//							(dictionaryPath instanceof NullNode) ? this.DEFAULT_DICTIONARY_PATH
+//									: dictionaryPath.toString(), dictNameNode
+//									.toString());
+//			String input = inputNode.toString();
+//			String result = input;
+//			String sub;
+//
+//			if (mappings.containsKey(input)) {
+//				result = mappings.get(input);
+//			} else if (mappings.containsValue(input)) {
+//				result = input;
+//			} else if ((sub = this.mappingSimilarTo(input, mappings)) != null) {
+//				result = sub;
+//			} else {
+//				// for unknown entities
+//				result = input;
+//			}
+//			return TextNode.valueOf(result);
+//		}
+//
+//		// we also map similar strings
+//		private String mappingSimilarTo(String input,
+//				Map<String, String> mappings) {
+//			for (String value : mappings.values()) {
+//				if (input.startsWith(value) || input.endsWith(value)) {
+//					return value;
+//				}
+//			}
+//			return null;
+//		}
+//
+//		private Map<String, String> loadDictionary(String dictionaryPath,
+//				String dictionaryName) {
+//			Map<String, String> mappings = new HashMap<String, String>();
+//			if (dictionaryName == null || "".equals(dictionaryName)) {
+//				return mappings;
+//			}
+//			try {
+//				BufferedReader br = new BufferedReader(new FileReader(
+//						dictionaryPath + dictionaryName + this.DICT_ENDING));
+//				String line, key;
+//				String[] keyValues, values;
+//
+//				try {
+//					while ((line = br.readLine()) != null) {
+//						keyValues = line.split(this.KEY_VALUE_SEPARATOR);
+//						key = keyValues[0];
+//						values = keyValues[1].split(this.VALUE_SEPARATOR);
+//						for (String value : values) {
+//							// we have to put the key-value pairs in reversed
+//							// order to allow multiple mappings from the
+//							// same shortcut (key) to different spellings
+//							// (values)
+//							mappings.put(value, key);
+//						}
+//					}
+//					br.close();
+//				} catch (IOException e) {
+//					e.printStackTrace();
+//
+//					// if an error occurs we just return an empty map to allow
+//					// further execution of the meteor script
+//					return new HashMap<String, String>();
+//				}
+//			} catch (FileNotFoundException e) {
+//				e.printStackTrace();
+//
+//				// if the specified dictionary doesn't exist we return the empty
+//				// map to allow further execution of the
+//				// meteor script
+//				return mappings;
+//			}
+//			return mappings;
+//		}
+//	};
 
 	@Name(noun = "parsePhoneNumbers")
 	public static class PARSE_PHONE_NUMBERS extends SopremoFunction1<TextNode> {
