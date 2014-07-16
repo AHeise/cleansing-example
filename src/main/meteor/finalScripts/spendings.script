@@ -3,7 +3,7 @@ using udf;
 
 path = "../../../../input/scrub/";
 
-$spendings = read from '../../../../input/finalSources/spendingClean.csv';
+$spendings = read from '../../../../input/finalSources/spendingSampleClean.csv';
 
 $spendings_scrubbed = scrub $spendings with rules {
 	UniqueTransactionID: required,
@@ -28,6 +28,7 @@ into [
     },
     entity $spendingsLegalEntities identified by $spendingsLegalEntities.name with {
     	name: $spendings_scrubbed.RecipientName,
+    	_source: "spending",
     	//type: ...,
     	address: {
     		street: $spendings_scrubbed.RecipientAddressLine123,

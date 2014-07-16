@@ -1,32 +1,34 @@
 using cleansing;
 using udf;
 
-$ermarksLegalEntities = read from '../../../../output/earmarksLegalEntities.json';
+$earmarksLegalEntities = read from '../../../../output/earmarksLegalEntities.json';
 $spendingLegalEntities = read from '../../../../output/spendingLegalEntities.json';
 
-$legalEntitiesUnioned = union $congressPoliticians, $freebasePoliticians_extracted, $earmarksPoliticians_extracted;
+$legalEntitiesUnioned = union $earmarksLegalEntities, $spendingLegalEntities;
 
 threshold = 0.9;
 
 $legalEntities_cluster1 = detect duplicates $legalEntitiesUnioned
-//two SNM runs
-sort on [$legalEntitiesUnioned..., ]
-	where  ((
-		...
-	with window 20;
+sort on [$legalEntitiesUnioned.name ]
+	where
+	jaroWinkler($legalEntitiesUnioned.firstName) > threshold
+	with window 2;
 
 write $legalEntities_cluster1 to '../../../../output/legalEntities_dups.json';
 
-$legalEntities_cluster2 = cluster transitively $legalEntities_cluster1;
+//$legalEntities_cluster2 = cluster transitively $legalEntities_cluster1;
 
-write $legalEntities_cluster2 to '../../../../output/legalEntities_dups_transitive.json';
+//write $legalEntities_cluster2 to '../../../../output/legalEntities_dups_transitive.json';
 	
-$legalEntities = fuse $legalEntities_cluster2
+$legalEntities = fuse $legalEntities_cluster1
 with weights {
-	...
+	spending: 1.0,
+	earmarks: 1.0
 }
 with resolutions {
-	...
+	_source: mergeDistinct,
+	name: mergeDistinct,
+	address: mergeDistinct,
 };
 
 write $legalEntities to '../../../../output/legalEntities_FINAL.json';
