@@ -9,10 +9,18 @@ $legalEntitiesUnioned = union $earmarksLegalEntities, $spendingLegalEntities;
 threshold = 0.9;
 
 $legalEntities_cluster1 = detect duplicates $legalEntitiesUnioned
-sort on [$legalEntitiesUnioned.name ]
+sort on [$legalEntitiesUnioned.name, $legalEntitiesUnioned.address.city, $legalEntitiesUnioned.address.state ]
 	where
-	jaroWinkler($legalEntitiesUnioned.firstName) > threshold
-	with window 2;
+	jaroWinkler($legalEntitiesUnioned.name) > threshold
+	and ((
+		1*levenshtein($legalEntitiesUnioned.address.street) +
+		1*levenshtein($legalEntitiesUnioned.address.city)+
+		1*levenshtein($legalEntitiesUnioned.address.zipcode)+
+		1*levenshtein($legalEntitiesUnioned.address.state)+
+		1*levenshtein($legalEntitiesUnioned.address.country)
+		)/5 > 0.5)
+	and	$legalEntitiesUnioned[0]._source != $legalEntitiesUnioned[1]._source
+	with window 20;
 
 write $legalEntities_cluster1 to '../../../../output/legalEntities_dups.json';
 

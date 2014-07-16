@@ -9,8 +9,8 @@ $earmarks_scrubbed = scrub $earmarks with rules {
 	earmark_id: [required, type(text), concat_strings("_earmarks")],
 	sponsor_state_code: [required, type(text), lookup($states), default("")],
 	sponsor_party_affil: required? lookup($parties) : default(""),
-	//recipient: [required, notContainedIn([''])],
-	earmark_2008_sum: required
+	earmark_2008_sum: required,
+	recipient_zipcode: type(text)
 };
 
 //no writing for better performance

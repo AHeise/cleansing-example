@@ -28,11 +28,11 @@ sort on [$personsUnioned.firstName, $personsUnioned.lastName, $personsUnioned.bi
 
 write $persons_cluster1 to '../../../../output/persons_dups.json';
 
-//$persons_cluster2 = cluster transitively $persons_cluster1;
+$persons_cluster2 = cluster transitively $persons_cluster1;
 
-//write $persons_cluster2 to '../../../../output/persons_dups_transitive.json';
+write $persons_cluster2 to '../../../../output/persons_dups_transitive.json';
 	
-$persons = fuse $persons_cluster1
+$persons = fuse $persons_cluster2
 with weights {
 	freebase: 0.7,
 	uscongress: 1.0
