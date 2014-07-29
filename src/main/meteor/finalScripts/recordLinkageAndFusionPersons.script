@@ -23,23 +23,7 @@ sort on [$personsUnioned.firstName, $personsUnioned.lastName, $personsUnioned.bi
 		)/20 > threshold)
 		and ($personsUnioned[0].birth&&$personsUnioned[1].birth?levenshtein($personsUnioned.birth) > 0.8:true)
 		and	$personsUnioned[0]._source != $personsUnioned[1]._source
-	with window 20;
-
-//threshold = 0.9;
-//
-//compareMidName = fn(midName1, midName2) { (midName1 == "" || midName2 == "")? 0.8 : jaroWinkler(midName1,midName2)};
-//compareYear = fn(year1,year2) { ((year1 && year2) && (year1 == year2)) ? 1 : threshold };
-//
-//$persons_cluster1 = link records $congressPoliticians, $freebasePoliticians_extracted
-////two SNM runs
-//sort on [{$congressPoliticians.firstName : $freebasePoliticians_extracted.firstName}, {$congressPoliticians.lastName : $freebasePoliticians_extracted.lastName}]
-//	where  ((
-//		5*jaroWinkler($congressPoliticians.firstName, $freebasePoliticians_extracted.firstName) +
-//		5*jaroWinkler($congressPoliticians.lastName, $freebasePoliticians_extracted.lastName) +
-//		3*compareMidName($congressPoliticians.middleName, $freebasePoliticians_extracted.middleName)+
-//		7*compareYear(substring($congressPoliticians.birth, 0, 4) as int, substring($freebasePoliticians_extracted.birth, 0, 4) as int)
-//		)/20 > threshold) and levenshtein($congressPoliticians.birth, $freebasePoliticians_extracted.birth) > threshold
-//	with window 20;
+	with window 2;
 
 
 write $persons_cluster1 to '../../../../output/persons_dups.json';
