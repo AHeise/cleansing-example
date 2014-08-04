@@ -2,9 +2,9 @@ using cleansing;
 using udf;
 
 $earmarksLegalEntities = read from '../../../../output/earmarksLegalEntities.json';
-$spendingLegalEntities = read from '../../../../output/spendingLegalEntities.json';
+$spendingsLegalEntities = read from '../../../../output/spendingLegalEntities.json';
 
-$legalEntitiesUnioned = union $earmarksLegalEntities, $spendingLegalEntities;
+$legalEntitiesUnioned = union $earmarksLegalEntities, $spendingsLegalEntities;
 
 threshold = 0.9;
 

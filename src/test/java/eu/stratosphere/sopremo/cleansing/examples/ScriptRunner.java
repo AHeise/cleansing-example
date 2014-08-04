@@ -57,10 +57,17 @@ public class ScriptRunner{
 		//SopremoUtil.trace();
 		this.client.submit(plan, null, true);
 	}
-	
+
 	@Test
 	public void runRecordLinkageAndFusionLegalEntities() throws IOException {
 		final SopremoPlan plan = parseScript( new File("src/main/meteor/finalScripts/"+"recordLinkageAndFusionLegalEntities"+".script"));
+		//SopremoUtil.trace();
+		this.client.submit(plan, null, true);
+	}
+	
+	@Test
+	public void runComplete() throws IOException {
+		final SopremoPlan plan = parseScript( new File("src/main/meteor/finalScripts/"+"complete"+".script"));
 		//SopremoUtil.trace();
 		this.client.submit(plan, null, true);
 	}

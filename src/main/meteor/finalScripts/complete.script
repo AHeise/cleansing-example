@@ -1,0 +1,280 @@
+using cleansing;
+using udf;
+
+$congress = read from '../../../../input/finalSources/congress.json';
+$states = read csv from '../../../../input/scrub/states2.dict' delimiter ';' columns ['key', 'value'];
+$parties = read csv from '../../../../input/scrub/parties2.dict' delimiter ';' columns ['key', 'value'];
+
+$congress_scrubbed = scrub $congress with rules {
+	id: [required, type(text), concat_strings("_congress")],
+	congress_numbers: required,
+	enddate: required,
+	startdate: required,
+	party: required?lookup($parties):default(""),
+	person: {
+		bioguideid : required,
+		birthday: [required, hasPattern("\d{4}(-\d{2}-\d{2})?")],
+		firstname: required,
+		lastname: required,
+		middlename: required
+	},
+	role_type: required,
+	state: [required, lookup($states)]
+};
+
+$congressParties, $congressPoliticians = transform records $congress_scrubbed
+into [
+    entity $congressParties identified by $congressParties.name with {
+    	_source: "congress",
+    	name: $congress_scrubbed.party,
+    },
+    entity $congressPoliticians identified by $congressPoliticians.id with {
+       	_source: "congress",
+       	id: $congress_scrubbed.person.id,
+       	firstName: $congress_scrubbed.person.firstname,
+       	middleName: $congress_scrubbed.person.middlename,
+       	lastName: $congress_scrubbed.person.lastname,
+        biography: $congress_scrubbed.person.bioguideid,
+    	birth : $congress_scrubbed.person.birthday,
+    	//no death information in congress data
+    	death: null,
+        worksForParty: [
+        	{
+        		startdate: $congress_scrubbed.startdate,
+        		enddate: $congress_scrubbed.enddate,
+        		//does not work
+        		party: $congressParties.id
+        	}
+        ],
+        
+        worksForOrganization: [
+            {
+            	role: $congress_scrubbed.role,
+            	startdate: $congress_scrubbed.startdate,
+            	enddate: $congress_scrubbed.enddate,
+            	state: $congress_scrubbed.state,
+            	congress_numbers: $congress_scrubbed.person.congress_numbers
+            }
+        ]
+    }
+];
+
+$earmarks = read from '../../../../input/finalSources/earmarks2009.json';
+
+$earmarks_scrubbed = scrub $earmarks with rules {
+	earmark_id: [required, type(text), concat_strings("_earmarks")],
+	sponsor_state_code: [required, type(text), lookup($states), default("")],
+	sponsor_party_affil: required? lookup($parties) : default(""),
+	earmark_2008_sum: required,
+	recipient_zipcode: type(text)
+};
+
+$earmarksPoliticians, $earmarksLegalEntities, $earmarksFunds, $earmarksParties = transform records $earmarks_scrubbed
+into [
+    entity $earmarksPoliticians identified by $earmarksPoliticians.earmarkCode with {
+    	//originalId: [$earmarks_scrubbed.earmark_id],
+    	earmarkCode: $earmarks_scrubbed.sponsor_code,
+       	_source: "earmarks",
+       	firstName: $earmarks_scrubbed.sponsor_first_name,
+       	middleName: $earmarks_scrubbed.sponsor_middle_name,
+       	lastName: $earmarks_scrubbed.sponsor_last_name,
+        biography: null,
+    	birth : null,
+    	death: null,
+        worksForParty: [
+        	{
+        		startdate: null,
+        		enddate: null,
+        		party: $earmarksParties.id
+        	}
+        ],
+        worksForOrganization: [
+            {
+        		role: $earmarks_scrubbed.sponsor_honorific,
+        		startdate: null,
+        		enddate: null,
+        		state: $earmarks_scrubbed.sponsor_state_code,
+        		//because we have 2009's earmarks it should be at least the 111th Congress?!
+        		congress_numbers: [111]
+        	}
+        ]
+    },
+    entity $earmarksLegalEntities identified by $earmarksLegalEntities.name with {
+    	//originalId: [$earmarks_scrubbed.earmark_id],
+    	_source: "earmarks",
+    	name: $earmarks_scrubbed.recipient,
+    	type: $earmarks_scrubbed.recpient_type,
+    	address: {
+    		street: $earmarks_scrubbed.recipient_address_1,
+    		addition: $earmarks_scrubbed.recipient_address_2,
+    		city: $earmarks_scrubbed.recipient_city,
+    		zipcode: $earmarks_scrubbed.recipient_zipcode,
+    		state: $earmarks_scrubbed.recipient_state,
+    		country: $earmarks_scrubbed.recipient_country
+    	}
+    },
+    entity $earmarksFunds identified by $earmarksFunds.originalId with {
+    	originalId: $earmarks_scrubbed.earmark_id,
+    	_source: "earmarks",
+    	sponsors: [$earmarksPoliticians.id],
+    	recipient: [$earmarksLegalEntities.id],
+    	//in 'S' records of earmarks this is 0, only in the 'R' record is the amount
+    	amount: $earmarks_scrubbed.earmark_2008_sum,
+      },
+    entity $earmarksParties identified by $earmarksParties.name with {
+    	//originalId: [$earmarks_scrubbed.earmark_id],
+    	_source: "earmarks",
+    	name: $earmarks_scrubbed.sponsor_party_affil
+    }
+];
+
+$officialTitles = read csv from '../../../../input/scrub/officialTitles.Prefix.dict' delimiter ',' columns ['title'];
+
+$freebasePoliticians = read from '../../../../input/finalSources/freebasePoliticians.json';
+$freebasePartyTenures = read from '../../../../input/finalSources/freebasePartyTenures.json';
+
+$freebasePoliticians_scrubbed = scrub $freebasePoliticians with rules {
+	id : [required, type(text), concat_strings("_freebasePolitician")],
+	date_of_birth : [required, hasPattern("\d{4}(-\d{2}-\d{2})?"), default(null)],
+	date_of_death : [required, hasPattern("\d{4}(-\d{2}-\d{2})?"), default(null)],
+	name : required?normalize_name($officialTitles, 'title'):default("")
+};
+
+$freebasePartyTenures_scrubbed = scrub $freebasePartyTenures with rules {
+	id : [required, type(text), concat_strings("_freebasePartyTenure")],
+	//from : [required, hasPattern("\d{4}(-\d{2}-\d{2})?"), default(null)],
+	//to : [required, hasPattern("\d{4}(-\d{2}-\d{2})?"), default(null)],
+	politician: {id : required},
+	party: {name : required?lookup($parties):default("")}
+};
+
+$freebasePoliticians_extracted = transform records $freebasePoliticians_scrubbed
+into [
+  entity $freebasePoliticians_extracted identified by $freebasePoliticians_extracted.originalId with {
+	  originalId: $freebasePoliticians_scrubbed.id,  
+  	_source: "freebase",
+  	firstName: $freebasePoliticians_scrubbed.name[0],
+	middleName: $freebasePoliticians_scrubbed.name[1],
+	lastName: $freebasePoliticians_scrubbed.name[2],
+  	biography: null,
+  	birth: $freebasePoliticians_scrubbed.date_of_birth,
+  	death: $freebasePoliticians_scrubbed.date_of_death,
+  	worksForOrganization: map($freebasePoliticians_scrubbed.government_positions_held, fn(pos) {
+  		{startdate: pos.from,
+        enddate: pos.to,
+        role: pos.office_position_or_title[*].name,
+        //no state info in freebase
+        state: null,
+        //TODO udf for congress number extraction needed
+        congress_numbers: pos.legislative_sessions[*].name}
+  	})
+  }
+];
+
+$spendings = read from '../../../../input/finalSources/spendingSampleClean.csv';
+
+$spendings_scrubbed = scrub $spendings with rules {
+	UniqueTransactionID: required,
+	RecipientName: required,
+	AgencyID: required,
+	DollarsObligated: [required, type(numeric)],
+	RecipientAddressLine123: required?:default(""),
+};
+
+$spendingsFunds, $spendingsLegalEntities = transform records $spendings_scrubbed
+into [
+    entity $spendingsFunds with {
+    	uniqueId: $spendings_scrubbed.UniqueTransactionID,
+    	_source: "spending",
+    	//no sponsor information in spendings
+    	sponsors: [],
+    	recipient:  $spendingsLegalEntities.id,
+    	amount: $spendings_scrubbed.DollarsObligated,
+    },
+    entity $spendingsLegalEntities identified by $spendingsLegalEntities.name with {
+    	name: $spendings_scrubbed.RecipientName,
+    	_source: "spending",
+    	//type: ...,
+    	address: {
+    		street: $spendings_scrubbed.RecipientAddressLine123,
+    		addition: null,
+    		city: $spendings_scrubbed.RecipientCity,
+    		zipcode: $spendings_scrubbed.RecipientZipCode,
+    		state: $spendings_scrubbed.RecipientState,
+    		country:  null
+    	}	
+    }
+];
+
+$legalEntitiesUnioned = union $earmarksLegalEntities, $spendingsLegalEntities;
+
+threshold = 0.9;
+
+$legalEntities_cluster1 = detect duplicates $legalEntitiesUnioned
+sort on [$legalEntitiesUnioned.name, $legalEntitiesUnioned.address.city, $legalEntitiesUnioned.address.state ]
+	where
+	jaroWinkler($legalEntitiesUnioned.name) > threshold
+	and ((
+		1*levenshtein($legalEntitiesUnioned.address.street) +
+		1*levenshtein($legalEntitiesUnioned.address.city)+
+		1*levenshtein($legalEntitiesUnioned.address.zipcode)+
+		1*levenshtein($legalEntitiesUnioned.address.state)+
+		1*levenshtein($legalEntitiesUnioned.address.country)
+		)/5 > 0.5)
+	and	$legalEntitiesUnioned[0]._source != $legalEntitiesUnioned[1]._source
+	with window 20;
+
+$legalEntities = fuse $legalEntities_cluster1
+with weights {
+	spending: 1.0,
+	earmarks: 1.0
+}
+with resolutions {
+	_source: mergeDistinct,
+	name: mergeDistinct,
+	address: mergeDistinct,
+};
+
+write $legalEntities to '../../../../output/legalEntities_FINAL.json';
+
+$personsUnioned = union $congressPoliticians, $freebasePoliticians_extracted, $earmarksPoliticians;
+
+threshold = 0.9;
+
+compareMidName = fn(midName1, midName2) { (midName1 == "" || midName2 == "")? 0.8 : jaroWinkler(midName1,midName2)};
+compareYear = fn(year1,year2) { ((year1 && year2) && (year1 == year2)) ? 1 : threshold };
+
+$persons_cluster1 = detect duplicates $personsUnioned
+//two SNM runs
+sort on [$personsUnioned.firstName, $personsUnioned.lastName, $personsUnioned.birth]
+	where  ((
+		5*jaroWinkler($personsUnioned.firstName) +
+		5*jaroWinkler($personsUnioned.lastName)+
+		3*compareMidName($personsUnioned[0].middleName, $personsUnioned[1].middleName)+
+		7*compareYear(substring($personsUnioned[0].birth?:"0", 0, 4) as int, substring($personsUnioned[1].birth?:"0", 0, 4) as int)
+		)/20 > threshold)
+		and ($personsUnioned[0].birth&&$personsUnioned[1].birth?levenshtein($personsUnioned.birth) > 0.8:true)
+		and	$personsUnioned[0]._source != $personsUnioned[1]._source
+	with window 2;
+
+$persons_cluster2 = cluster transitively $persons_cluster1;
+	
+$persons = fuse $persons_cluster2
+with weights {
+	freebase: 0.7,
+	uscongress: 1.0
+}
+with resolutions {
+	_source: mergeDistinct,
+	id: mergeDistinct,
+	firstName: mergeDistinct,
+	middleName: mergeDistinct,
+	lastName: mergeDistinct,
+	biography: mergeDistinct,
+	birth : mergeDistinct,
+	death: mergeDistinct,
+	//worksForParty: mergeDistinct,
+	//worksForOrganization: mergeDistinct
+};
+
+write $persons to '../../../../output/persons_FINAL.json';
